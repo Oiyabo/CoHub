@@ -1,0 +1,178 @@
+<!-- MODALS GLOBAL (Sesuai Desain PDF Halaman Buat Post & Buat Komunitas) -->
+
+<!-- 1. MODAL BUAT POSTINGAN (PDF 1 Halaman 6) -->
+<div x-show="createPostOpen" 
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
+     class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
+     style="display: none;">
+    
+    <div @click.away="createPostOpen = false" 
+         class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 transform transition-all relative">
+        
+        <!-- Header Modal -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <h3 class="text-base font-bold text-slate-800">Buat postingan</h3>
+            <button @click="createPostOpen = false" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Form Dummy / Action Route -->
+        <form action="{{ Route::has('posts.store') ? route('posts.store') : url('/posts') }}" method="POST" class="mt-4 space-y-4">
+            @csrf
+            
+            <!-- Pilih Komunitas -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Pilih komunitas</label>
+                <div class="flex flex-wrap gap-2">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="community_id" value="1" class="peer sr-only" checked>
+                        <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-blue-50 peer-checked:text-blue-600 peer-checked:ring-1 peer-checked:ring-blue-500 transition-all">
+                            c/laravel-indonesia
+                        </span>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="community_id" value="2" class="peer sr-only">
+                        <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-emerald-50 peer-checked:text-emerald-600 peer-checked:ring-1 peer-checked:ring-emerald-500 transition-all">
+                            c/ilkom-unila
+                        </span>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="community_id" value="3" class="peer sr-only">
+                        <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-purple-50 peer-checked:text-purple-600 peer-checked:ring-1 peer-checked:ring-purple-500 transition-all">
+                            c/data-science-ai
+                        </span>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="community_id" value="4" class="peer sr-only">
+                        <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-amber-50 peer-checked:text-amber-600 peer-checked:ring-1 peer-checked:ring-amber-500 transition-all">
+                            c/seputar-kampus
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Judul -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Judul</label>
+                <input type="text" name="title" placeholder="Contoh: Cara membuat relasi self-referencing di Laravel" 
+                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors">
+            </div>
+
+            <!-- Isi Diskusi -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Isi diskusi</label>
+                <textarea name="content" rows="4" placeholder="Tuliskan pertanyaan, ide, atau pembahasan lengkapmu di sini..." 
+                          class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors resize-none"></textarea>
+            </div>
+
+            <!-- Lampiran Gambar -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Gambar</label>
+                <div class="flex items-center gap-3">
+                    <button type="button" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-colors flex items-center gap-1.5">
+                        <span>+ Tambah</span>
+                    </button>
+                    <span class="text-[11px] text-slate-400">PNG, JPG, maks 2 MB</span>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+                <button type="button" @click="createPostOpen = false" class="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors">
+                    Simpan draft
+                </button>
+                <div class="flex items-center gap-3">
+                    <span class="text-[11px] text-slate-400 font-mono">0 / 500</span>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all active:scale-95">
+                        Posting
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+
+<!-- 2. MODAL BUAT KOMUNITAS BARU (PDF 1 Halaman 9) -->
+<div x-show="createCommunityOpen" 
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
+     class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
+     style="display: none;">
+    
+    <div @click.away="createCommunityOpen = false" 
+         class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 transform transition-all relative">
+        
+        <!-- Header Modal -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <h3 class="text-base font-bold text-slate-800">Buat komunitas baru</h3>
+            <button @click="createCommunityOpen = false" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Form Buat Komunitas -->
+        <form action="{{ Route::has('communities.store') ? route('communities.store') : url('/communities') }}" method="POST" enctype="multipart/form-data" class="mt-4 space-y-4">
+            @csrf
+            
+            <!-- Nama Komunitas -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama komunitas</label>
+                <div class="relative flex items-center">
+                    <span class="absolute left-3.5 text-xs font-semibold text-slate-400">c/</span>
+                    <input type="text" name="name" placeholder="laravel-indonesia" 
+                           class="w-full pl-8 pr-28 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors">
+                    <span class="absolute right-3 px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-md text-[10px] font-semibold flex items-center gap-1">
+                        ✓ Nama tersedia
+                    </span>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-1">Dicek otomatis saat kamu mengetik.</p>
+            </div>
+
+            <!-- Deskripsi -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Deskripsi (opsional)</label>
+                <textarea name="description" rows="3" placeholder="Jelaskan topik dan tujuan komunitas ini dibuat..." 
+                          class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors resize-none"></textarea>
+            </div>
+
+            <!-- Banner Komunitas -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Banner komunitas</label>
+                <div class="border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-2xl p-6 text-center cursor-pointer transition-colors bg-slate-50/50">
+                    <svg class="w-7 h-7 text-slate-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                    </svg>
+                    <p class="text-xs text-slate-600 font-medium">Seret gambar atau klik untuk unggah</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">PNG / JPG, maks 2 MB</p>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button type="button" @click="createCommunityOpen = false" class="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors">
+                    Batal
+                </button>
+                <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all active:scale-95">
+                    Buat Komunitas
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
