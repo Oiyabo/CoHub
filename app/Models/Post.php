@@ -42,6 +42,7 @@ class Post extends Model
     {
         $up = $this->votes()->where('vote_type', 'upvote')->count();
         $down = $this->votes()->where('vote_type', 'downvote')->count();
+
         return $up - $down;
     }
 }
