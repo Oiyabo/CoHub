@@ -1,9 +1,8 @@
-
 <x-app-layout>
     <!-- GUEST / PUBLIC FEED -->
     <div class="space-y-4">
 
-        <!-- Header Banner Sederhana -->
+        <!-- Header Banner -->
         <div class="bg-blue-600 rounded-2xl p-6 text-white shadow-xs">
             <h1 class="text-xl sm:text-2xl font-bold tracking-tight">
                 CoHub (Community Hub)
@@ -15,7 +14,8 @@
 
         <!-- DAFTAR POSTINGAN -->
         @forelse($posts as $post)
-            <article class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs">
+            <article class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs"
+                     data-post-id="{{ $post->id }}">
 
                 <!-- Author Header -->
                 <div class="flex items-center justify-between gap-3 mb-2.5">
@@ -63,7 +63,7 @@
                     {{ $post->content }}
                 </p>
 
-                <!-- Actions: Skor Vote & Jumlah Komentar -->
+                <!-- Actions -->
                 <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
                     <div class="flex items-center gap-3">
                         <div class="flex items-center bg-slate-100 text-slate-700 rounded-lg px-2.5 py-1 font-bold">
@@ -72,7 +72,9 @@
                             <span class="text-slate-400">▼</span>
                         </div>
 
-                        <span class="text-slate-500 font-medium">
+                        <span class="text-slate-500 font-medium"
+                              data-comment-count>
+                              data-count="{{ $post->comments->count() }}"
                             💬 {{ $post->comments->count() }} Komentar
                         </span>
                     </div>
@@ -87,7 +89,8 @@
                     @auth
                         <form action="{{ route('comments.store', $post) }}"
                               method="POST"
-                              class="mb-3 space-y-2">
+                              class="mb-3 space-y-2"
+                              data-comment-ajax="store">
                             @csrf
 
                             <textarea name="content"
@@ -104,20 +107,19 @@
                         </form>
                     @endauth
 
-                    @if($post->comments->whereNull('parent_id')->isNotEmpty())
-                        <div class="space-y-2">
-                            @foreach($post->comments->whereNull('parent_id') as $comment)
-                                @include('comments._comment', [
-                                    'comment' => $comment,
-                                    'depth' => 0
-                                ])
-                            @endforeach
-                        </div>
-                    @else
-                        <p class="text-xs text-slate-400">
-                            Belum ada komentar.
-                        </p>
-                    @endif
+                    <div data-comments-list class="space-y-2">
+                        @if($post->commentTree->isNotEmpty())
+                            @include('components.comment-tree', [
+                                'comments' => $post->commentTree,
+                                'depth' => 0
+                            ])
+                        @else
+                            <p class="text-xs text-slate-400"
+                                data-empty-comments>
+                                Belum ada komentar.
+                            </p>
+                        @endif
+                    </div>
                 </div>
 
             </article>

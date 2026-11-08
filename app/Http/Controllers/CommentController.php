@@ -15,35 +15,54 @@ class CommentController extends Controller
 
         $validated = $request->validate([
             'content' => ['required', 'string'],
-            'parent_id' => ['nullable', 'integer', 'exists:comments,id'],
         ]);
-
-        $parentId = null;
-
-        if (!empty($validated['parent_id'])) {
-            $parent = Comment::where('id', $validated['parent_id'])
-                ->where('post_id', $post->id)
-                ->firstOrFail();
-
-            $parentId = $parent->id;
-        }
 
         $comment = $post->comments()->create([
             'user_id' => $request->user()->id,
-            'parent_id' => $parentId,
+            'parent_id' => null,
             'content' => $validated['content'],
         ]);
 
-        $comment->load('user');
+        $comment->load(['user', 'post']);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => 'Komentar berhasil ditambahkan.',
-                'comment' => $comment,
+                'html' => $this->renderComment($comment),
+                'comment_id' => $comment->id,
+                'parent_id' => null,
             ], 201);
         }
 
         return back()->with('success', 'Komentar berhasil ditambahkan.');
+    }
+
+    public function reply(Request $request, Comment $comment)
+    {
+        Gate::authorize('create', [Comment::class, $comment->post]);
+
+        $validated = $request->validate([
+            'content' => ['required', 'string'],
+        ]);
+
+        $reply = $comment->replies()->create([
+            'user_id' => $request->user()->id,
+            'post_id' => $comment->post_id,
+            'content' => $validated['content'],
+        ]);
+
+        $reply->load(['user', 'post']);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Balasan berhasil ditambahkan.',
+                'html' => $this->renderComment($reply),
+                'comment_id' => $reply->id,
+                'parent_id' => $comment->id,
+            ], 201);
+        }
+
+        return back()->with('success', 'Balasan berhasil ditambahkan.');
     }
 
     public function update(Request $request, Comment $comment)
@@ -59,9 +78,12 @@ class CommentController extends Controller
         ]);
 
         if ($request->expectsJson()) {
+            $comment->load(['user', 'post']);
+
             return response()->json([
                 'message' => 'Komentar berhasil diperbarui.',
-                'comment' => $comment->load('user'),
+                'html' => $this->renderComment($comment),
+                'comment_id' => $comment->id,
             ]);
         }
 
@@ -77,11 +99,33 @@ class CommentController extends Controller
         $comment->save();
 
         if ($request->expectsJson()) {
+            $comment->load(['user', 'post']);
+
             return response()->json([
                 'message' => 'Komentar berhasil dihapus.',
+                'html' => $this->renderComment($comment),
+                'comment_id' => $comment->id,
             ]);
         }
 
         return back()->with('success', 'Komentar berhasil dihapus.');
+    }
+
+    private function renderComment(Comment $comment)
+    {
+        $depth = 0;
+        $parent = $comment->parent;
+
+        while ($parent) {
+            $depth++;
+            $parent = $parent->parent;
+        }
+
+        $comment->setRelation('replies', collect());
+
+        return view('components.comment-item', [
+            'comment' => $comment,
+            'depth' => $depth,
+        ])->render();
     }
 }
