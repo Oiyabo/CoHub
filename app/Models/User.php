@@ -24,6 +24,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_blocked',
     ];
 
     /**
@@ -69,8 +70,23 @@ class User extends Authenticatable
         return $this->moderatedCommunities()->where('community_id', $communityId)->exists();
     }
 
+    public function votes(): HasMany
+    {
+        return $this->hasMany(Vote::class);
+    }
+
+    public function commentVotes(): HasMany
+    {
+        return $this->hasMany(CommentVote::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function isBlocked(): bool
+    {
+        return (bool) $this->is_blocked;
     }
 }

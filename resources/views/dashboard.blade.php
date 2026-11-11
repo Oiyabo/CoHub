@@ -58,12 +58,17 @@
                 <!-- Actions: Skor Vote & Jumlah Komentar -->
                 <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
                     <div class="flex items-center gap-3">
-                        <!-- Widget Upvote / Downvote -->
-                        <div class="flex items-center bg-slate-100 text-slate-700 rounded-lg px-2.5 py-1 font-bold">
-                            <span class="text-blue-600">▲</span>
-                            <span class="mx-1.5 font-mono">{{ $post->score }}</span>
-                            <span class="text-slate-400">▼</span>
-                        </div>
+                        <!-- Widget Upvote / Downvote (komponen Sakinah) -->
+                        @php
+                            $userVoteOnPost = auth()->check()
+                                ? $post->votes->where('user_id', auth()->id())->first()?->vote_type
+                                : null;
+                        @endphp
+                        <x-vote-button
+                            :post-id="$post->id"
+                            :score="$post->score"
+                            :user-vote="$userVoteOnPost"
+                        />
 
                         <!-- Jumlah Komentar -->
                         <span class="text-slate-500 font-medium">

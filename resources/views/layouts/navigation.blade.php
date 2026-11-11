@@ -23,9 +23,11 @@
 
                     @auth
                         @if(Auth::user()->isAdmin())
-                            <span class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
-                                Mode Admin
-                            </span>
+                            <a href="{{ route('admin.dashboard') }}"
+                               class="px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5
+                                      {{ request()->routeIs('admin.*') ? 'text-amber-700 bg-amber-50 font-bold' : 'text-amber-600 hover:text-amber-700 hover:bg-amber-50' }}">
+                                ⚡ Admin Panel
+                            </a>
                         @endif
                     @endauth
                 </div>
