@@ -250,4 +250,25 @@ class PostTest extends TestCase
             ->assertOk()
             ->assertSeeInOrder(['Post skor tinggi', 'Post skor rendah']);
     }
+
+    public function test_feed_order_endpoint_returns_ids_sorted_by_score(): void
+    {
+        $author = User::factory()->create();
+        $voters = User::factory()->count(2)->create();
+        $community = $this->makeCommunity($author);
+
+        $low = $this->makePost($author, $community, 'Post skor rendah');
+        $high = $this->makePost($author, $community, 'Post skor tinggi');
+
+        foreach ($voters as $voter) {
+            Vote::create(['user_id' => $voter->id, 'post_id' => $high->id, 'vote_type' => 'upvote']);
+        }
+
+        $response = $this->getJson(route('posts.feed.order', ['tab' => 'teratas']))->assertOk();
+
+        $this->assertSame(
+            [$high->id, $low->id],
+            array_map('intval', $response->json('ids'))
+        );
+    }
 }

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 
 // Publik (Guest boleh baca)
 Route::get('/feed', [PostController::class, 'feed'])->name('posts.feed');
+Route::get('/feed/order', [PostController::class, 'order'])->name('posts.feed.order');
 Route::get('/posts/{post}', [PostController::class, 'show'])
     ->whereNumber('post')
     ->name('posts.show');

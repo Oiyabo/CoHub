@@ -24,53 +24,51 @@
             </button>
         </div>
 
-        <!-- Form Dummy / Action Route -->
-        <form action="{{ Route::has('posts.store') ? route('posts.store') : url('/posts') }}" method="POST" class="mt-4 space-y-4">
+        <!-- Form Buat Postingan -->
+        <form action="{{ route('posts.store') }}" method="POST" class="mt-4 space-y-4"
+              x-data="{ content: @js(old('content', '')) }"
+              x-init="{{ $errors->hasAny(['community_id', 'title', 'content']) ? 'createPostOpen = true' : '' }}">
             @csrf
             
-            <!-- Pilih Komunitas -->
+            <!-- Pilih Komunitas (otomatis dari database) -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-2">Pilih komunitas</label>
                 <div class="flex flex-wrap gap-2">
-                    <label class="cursor-pointer">
-                        <input type="radio" name="community_id" value="1" class="peer sr-only" checked>
-                        <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-blue-50 peer-checked:text-blue-600 peer-checked:ring-1 peer-checked:ring-blue-500 transition-all">
-                            c/laravel-indonesia
-                        </span>
-                    </label>
-                    <label class="cursor-pointer">
-                        <input type="radio" name="community_id" value="2" class="peer sr-only">
-                        <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-emerald-50 peer-checked:text-emerald-600 peer-checked:ring-1 peer-checked:ring-emerald-500 transition-all">
-                            c/ilkom-unila
-                        </span>
-                    </label>
-                    <label class="cursor-pointer">
-                        <input type="radio" name="community_id" value="3" class="peer sr-only">
-                        <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-purple-50 peer-checked:text-purple-600 peer-checked:ring-1 peer-checked:ring-purple-500 transition-all">
-                            c/data-science-ai
-                        </span>
-                    </label>
-                    <label class="cursor-pointer">
-                        <input type="radio" name="community_id" value="4" class="peer sr-only">
-                        <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-amber-50 peer-checked:text-amber-600 peer-checked:ring-1 peer-checked:ring-amber-500 transition-all">
-                            c/seputar-kampus
-                        </span>
-                    </label>
+                    @foreach ($globalCommunities as $comm)
+                        <label class="cursor-pointer">
+                            <input type="radio" name="community_id" value="{{ $comm->id }}" class="peer sr-only"
+                                   {{ (string) old('community_id', $loop->first ? $comm->id : '') === (string) $comm->id ? 'checked' : '' }}>
+                            <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-blue-50 peer-checked:text-blue-600 peer-checked:ring-1 peer-checked:ring-blue-500 transition-all">
+                                c/{{ $comm->name }}
+                            </span>
+                        </label>
+                    @endforeach
                 </div>
+                @error('community_id')
+                    <p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             <!-- Judul -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Judul</label>
-                <input type="text" name="title" placeholder="Contoh: Cara membuat relasi self-referencing di Laravel" 
+                <input type="text" name="title" value="{{ old('title') }}" maxlength="255" required
+                       placeholder="Contoh: Cara membuat relasi self-referencing di Laravel" 
                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors">
+                @error('title')
+                    <p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             <!-- Isi Diskusi -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Isi diskusi</label>
-                <textarea name="content" rows="4" placeholder="Tuliskan pertanyaan, ide, atau pembahasan lengkapmu di sini..." 
+                <textarea name="content" rows="4" maxlength="500" required x-model="content"
+                          placeholder="Tuliskan pertanyaan, ide, atau pembahasan lengkapmu di sini..." 
                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors resize-none"></textarea>
+                @error('content')
+                    <p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             <!-- Lampiran Gambar -->
@@ -90,7 +88,7 @@
                     Simpan draft
                 </button>
                 <div class="flex items-center gap-3">
-                    <span class="text-[11px] text-slate-400 font-mono">0 / 500</span>
+                    <span class="text-[11px] text-slate-400 font-mono" x-text="content.length + ' / 500'">0 / 500</span>
                     <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all active:scale-95">
                         Posting
                     </button>

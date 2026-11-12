@@ -17,6 +17,7 @@
         </div>
 
         <!-- 2. DAFTAR POSTINGAN NYATA DARI DATABASE SEEDER -->
+        <x-feed-sorter />
         @forelse($posts as $post)
             <article class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs cursor-pointer hover:border-blue-300 transition-colors"
                      onclick="if (!event.target.closest('a, button, form, [data-no-nav]') && !window.getSelection().toString()) window.location.href = '{{ route('posts.show', $post) }}'">

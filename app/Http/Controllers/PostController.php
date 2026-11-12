@@ -21,6 +21,16 @@ class PostController extends Controller
         return view('posts.partials.feed-list', compact('posts'));
     }
 
+    /**
+     * Urutan ID postingan (JSON) untuk tab feed di halaman yang kartunya sudah dirender.
+     */
+    public function order(Request $request)
+    {
+        return response()->json([
+            'ids' => PostFeed::ids($request->query('tab')),
+        ]);
+    }
+
     public function show(Post $post)
     {
         $post->load(['user.moderatedCommunities', 'community'])
