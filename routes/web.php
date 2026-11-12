@@ -23,17 +23,21 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
 
 // Comunity Management
 
 Route::get('/communities', [CommunityController::class, 'index'])->name('communities.index');
+Route::get('/explore', [CommunityController::class, 'index'])->name('communities.explore');
 Route::get('/api/communities/check-name', [CommunityController::class, 'checkName'])->name('communities.check-name');
 
 Route::middleware('auth')->group(function () {
     Route::get('/communities/create', [CommunityController::class, 'create'])->name('communities.create');
     Route::post('/communities', [CommunityController::class, 'store'])->name('communities.store');
+
+    Route::get('/c/{community:name}/settings', [CommunityController::class, 'edit'])->name('communities.settings');
     Route::get('/c/{community:name}/edit', [CommunityController::class, 'edit'])->name('communities.edit');
+
     Route::put('/c/{community:name}', [CommunityController::class, 'update'])->name('communities.update');
     Route::delete('/c/{community:name}', [CommunityController::class, 'destroy'])->name('communities.destroy');
 
