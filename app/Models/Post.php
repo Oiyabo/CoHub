@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Post extends Model
 {
@@ -43,6 +44,7 @@ class Post extends Model
     {
         $up = $this->votes()->where('vote_type', 'upvote')->count();
         $down = $this->votes()->where('vote_type', 'downvote')->count();
+
         return $up - $down;
     }
 
@@ -51,5 +53,33 @@ class Post extends Model
         return $this->image_path
             ? asset('storage/'.$this->image_path)
             : null;
+    }
+}
+    public function buildCommentTree(): Collection
+    {
+        if (!$this->relationLoaded('comments')) {
+            $this->load('comments.user');
+        }
+
+        $comments = $this->comments;
+
+        $commentsByParent = $comments->groupBy(function ($comment) {
+            return $comment->parent_id ?? 'root';
+        });
+
+        foreach ($comments as $comment) {
+            $comment->setRelation(
+                'replies',
+                $commentsByParent->get($comment->id, collect())
+            );
+
+            $comment->setRelation('post', $this);
+        }
+
+        $tree = $commentsByParent->get('root', collect());
+
+        $this->setRelation('commentTree', $tree);
+
+        return $tree;
     }
 }

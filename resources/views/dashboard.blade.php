@@ -1,16 +1,17 @@
 <x-app-layout>
-    <!-- MAIN FEED DASHBOARD (Menampilkan Data Nyata dari Seeder) -->
     <div class="space-y-4">
-        
+
         <!-- 1. KOTAK INPUT CEPAT BUAT POST -->
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+                <div
+                    class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
                     {{ strtoupper(substr(Auth::user()->name ?? 'U', 0, 2)) }}
                 </div>
-                <button type="button" 
-                        @click="$dispatch('open-create-post')"
-                        class="flex-1 bg-slate-50 hover:bg-slate-100 text-left text-xs text-slate-400 px-4 py-2.5 rounded-xl border border-slate-200 transition-colors cursor-pointer">
+
+                <button type="button"
+                    @click="$dispatch('open-create-post')"
+                    class="flex-1 bg-slate-50 hover:bg-slate-100 text-left text-xs text-slate-400 px-4 py-2.5 rounded-xl border border-slate-200 transition-colors cursor-pointer">
                     Apa yang ingin kamu diskusikan hari ini?
                 </button>
             </div>
@@ -22,6 +23,11 @@
             <article class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs cursor-pointer hover:border-blue-300 transition-colors"
                      onclick="if (!event.target.closest('a, button, form, [data-no-nav]') && !window.getSelection().toString()) window.location.href = '{{ route('posts.show', $post) }}'">
                 
+        <!-- 2. DAFTAR POSTINGAN -->
+        @forelse($posts as $post)
+            <article class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs"
+                     data-post-id="{{ $post->id }}">
+
                 <!-- Author Header -->
                 <div class="flex items-center justify-between gap-3 mb-2.5">
                     <div class="flex items-center gap-2 flex-wrap">
@@ -30,18 +36,29 @@
                             $isAuthorAdmin = $post->user->isAdmin();
                             $isAuthorMod = $post->user->isModeratorOf($post->community_id);
                         @endphp
-                        <div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
+
+                        <div
+                            class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
                             {{ $userInitial }}
                         </div>
-                        <span class="text-xs font-bold text-slate-800">{{ $post->user->name }}</span>
-                        
+
+                        <span class="text-xs font-bold text-slate-800">
+                            {{ $post->user->name }}
+                        </span>
+
                         @if($isAuthorAdmin)
-                            <span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">Admin</span>
+                            <span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                Admin
+                            </span>
                         @elseif($isAuthorMod)
-                            <span class="text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200">Moderator</span>
+                            <span class="text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">
+                                Moderator
+                            </span>
                         @endif
 
-                        <span class="text-[11px] text-slate-400">· {{ $post->created_at->diffForHumans() }}</span>
+                        <span class="text-[11px] text-slate-400">
+                            · {{ $post->created_at->diffForHumans() }}
+                        </span>
                     </div>
 
                     <!-- Kanan: badge komunitas + menu titik tiga -->
@@ -85,6 +102,10 @@
                             </div>
                         </div>
                     </div>
+                    <a href="{{ route('communities.show', $post->community->name) }}"
+                        class="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition shadow-2xs">
+                        c/{{ $post->community->name }}
+                    </a>
                 </div>
 
                 <!-- Judul & Konten Postingan -->
@@ -93,6 +114,7 @@
                         {{ $post->title }}
                     </a>
                 </h2>
+
                 <p class="text-xs sm:text-sm text-slate-600 leading-relaxed mb-3">
                     {{ $post->content }}
                 </p>
@@ -102,7 +124,7 @@
                 <!-- Actions: Skor Vote & Jumlah Komentar -->
                 <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
                     <div class="flex items-center gap-3">
-                        <!-- Widget Upvote / Downvote -->
+
                         <div class="flex items-center bg-slate-100 text-slate-700 rounded-lg px-2.5 py-1 font-bold">
                             <span class="text-blue-600">▲</span>
                             <span class="mx-1.5 font-mono">{{ $post->score }}</span>
@@ -111,31 +133,55 @@
 
                         <!-- Jumlah Komentar -->
                         <a href="{{ route('posts.show', $post) }}" class="text-slate-500 hover:text-blue-600 font-medium">
+                        <span class="text-slate-500 font-medium"
+                              data-comment-count
+                              data-count="{{ $post->comments->count() }}">
                             💬 {{ $post->comments->count() }} Komentar
                         </a>
                     </div>
                 </div>
 
-                <!-- DAFTAR KOMENTAR NYATA DARI SEEDER -->
-                @if($post->comments->isNotEmpty())
-                    <div class="mt-3 pt-3 border-t border-slate-100 space-y-2 pl-1">
-                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Komentar:</span>
-                        @foreach($post->comments as $comment)
-                            <div class="text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100 {{ $comment->parent_id ? 'ml-4 sm:ml-6 border-l-2 border-l-blue-400' : '' }}">
-                                <div class="flex items-center gap-1.5 mb-1">
-                                    <span class="font-bold text-slate-700">{{ $comment->user->name }}</span>
-                                    @if($comment->user->isAdmin())
-                                        <span class="text-[9px] font-bold text-amber-700 bg-amber-50 px-1 py-0.2 rounded">Admin</span>
-                                    @elseif($comment->user->isModeratorOf($post->community_id))
-                                        <span class="text-[9px] font-bold text-purple-700 bg-purple-50 px-1 py-0.2 rounded">Moderator</span>
-                                    @endif
-                                    <span class="text-[10px] text-slate-400">· {{ $comment->created_at->diffForHumans() }}</span>
-                                </div>
-                                <p class="text-slate-600 leading-normal">{{ $comment->content }}</p>
-                            </div>
-                        @endforeach
+                <!-- DAFTAR KOMENTAR BERTINGKAT -->
+                <div class="mt-3 pt-3 border-t border-slate-100">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                        Komentar:
+                    </span>
+
+                    @auth
+                        <form action="{{ route('comments.store', $post) }}"
+                              method="POST"
+                              class="mb-3 space-y-2"
+                              data-comment-ajax="store">
+                            @csrf
+
+                            <textarea name="content"
+                                      rows="2"
+                                      required
+                                      maxlength="5000"
+                                      placeholder="Tulis komentarmu..."
+                                      class="w-full text-xs rounded-lg border-slate-200 focus:border-blue-400 focus:ring-blue-400"></textarea>
+
+                            <button type="submit"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+                                Kirim Komentar
+                            </button>
+                        </form>
+                    @endauth
+
+                    <div data-comments-list class="space-y-2">
+                        @if($post->commentTree->isNotEmpty())
+                            @include('components.comment-tree', [
+                                'comments' => $post->commentTree,
+                                'depth' => 0
+                            ])
+                        @else
+                            <p class="text-xs text-slate-400"
+                               data-empty-comments>
+                                Belum ada komentar.
+                            </p>
+                        @endif
                     </div>
-                @endif
+                </div>
 
             </article>
         @empty
