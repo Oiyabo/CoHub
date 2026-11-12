@@ -79,6 +79,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/c/{community:name}/moderators/{user}', [CommunityController::class, 'removeModerator'])->name('communities.moderators.remove');
 });
 
+require __DIR__.'/posts.php';
 Route::get('/c/{community:name}', [CommunityController::class, 'show'])->name('communities.show');
 
 require __DIR__.'/auth.php';

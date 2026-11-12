@@ -17,6 +17,7 @@ class Post extends Model
         'community_id',
         'title',
         'content',
+        'image_path',
     ];
 
     public function user(): BelongsTo
@@ -47,6 +48,13 @@ class Post extends Model
         return $up - $down;
     }
 
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image_path
+            ? asset('storage/'.$this->image_path)
+            : null;
+    }
+}
     public function buildCommentTree(): Collection
     {
         if (!$this->relationLoaded('comments')) {
