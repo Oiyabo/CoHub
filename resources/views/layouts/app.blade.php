@@ -24,8 +24,18 @@
     </style>
 </head>
 
-<body x-data="{ createPostOpen: false, createCommunityOpen: false }" @open-create-post.window="createPostOpen = true"
+<body x-data="{
+        createPostOpen: false,
+        createCommunityOpen: false,
+        authModal: {{ request('auth') ? "'" . e(request('auth')) . "'" : ($errors->has('name') ? "'register'" : (session('status') || request()->routeIs('password.*') ? "'forgot'" : ($errors->any() ? "'login'" : 'null'))) }}
+    }"
+    @open-create-post.window="createPostOpen = true"
     @open-create-community.window="createCommunityOpen = true"
+    @open-login.window="authModal = 'login'"
+    @open-register.window="authModal = 'register'"
+    @open-forgot.window="authModal = 'forgot'"
+    @close-auth.window="authModal = null"
+    @keydown.escape.window="authModal = null"
     class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
 
     <!-- 1. TOP NAVBAR BERSAMA -->
@@ -108,13 +118,14 @@
                     <span class="text-slate-400 text-[11px]">Masuk untuk berkomentar dan membuat postingan.</span>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <a href="{{ route('login') }}"
-                        class="px-3 py-1 text-slate-200 hover:text-white rounded-lg bg-slate-800">
+                    <button type="button" @click="authModal = 'login'"
+                        class="px-3 py-1 text-slate-200 hover:text-white rounded-lg bg-slate-800 transition-colors cursor-pointer">
                         Masuk
-                    </a>
-                    <a href="{{ route('register') }}" class="px-3 py-1 text-white bg-blue-600 rounded-lg">
+                    </button>
+                    <button type="button" @click="authModal = 'register'"
+                        class="px-3 py-1 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer">
                         Daftar
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>

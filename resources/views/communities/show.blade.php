@@ -147,10 +147,10 @@
                                 </button>
                             @endif
                         @else
-                            <a href="{{ route('login') }}"
-                                class="px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition">
+                            <button type="button" @click="authModal = 'login'"
+                                class="px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition cursor-pointer">
                                 Gabung
-                            </a>
+                            </button>
                         @endauth
                     </div>
                 </div>

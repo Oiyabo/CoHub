@@ -214,3 +214,8 @@
         }
     }
 </script>
+
+<!-- 3. MODALS AUTH (Login, Register, Reset Password Sesuai Desain) -->
+@guest
+    @include('auth.modals')
+@endguest

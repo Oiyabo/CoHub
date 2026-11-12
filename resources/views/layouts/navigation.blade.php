@@ -16,7 +16,6 @@
                 </a>
 
                 <!-- 2. NAV LINKS -->
-                <!-- 2. NAV LINKS -->
                 <div class="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-600">
                     <!-- Link Beranda -->
                     <a href="{{ Auth::check() ? route('dashboard') : url('/') }}"
@@ -101,14 +100,14 @@
                 @else
                     <!-- Guest -->
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('login') }}"
-                            class="px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors">
+                        <button type="button" @click="authModal = 'login'"
+                            class="px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer">
                             Masuk
-                        </a>
-                        <a href="{{ route('register') }}"
-                            class="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors">
+                        </button>
+                        <button type="button" @click="authModal = 'register'"
+                            class="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors cursor-pointer shadow-xs">
                             Daftar
-                        </a>
+                        </button>
                     </div>
                 @endauth
             </div>
