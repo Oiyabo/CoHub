@@ -25,9 +25,10 @@
         </div>
 
         <!-- Form Buat Postingan -->
-        <form action="{{ route('posts.store') }}" method="POST" class="mt-4 space-y-4"
-              x-data="{ content: @js(old('content', '')) }"
-              x-init="{{ $errors->hasAny(['community_id', 'title', 'content']) ? 'createPostOpen = true' : '' }}">
+        <!-- BARU: enctype="multipart/form-data", x-data digabung dengan postImageUpload(), 'image' ditambah di hasAny -->
+        <form action="{{ route('posts.store') }}" method="POST" enctype="multipart/form-data" class="mt-4 space-y-4"
+              x-data="{ content: @js(old('content', '')), ...postImageUpload() }"
+              x-init="{{ $errors->hasAny(['community_id', 'title', 'content', 'image']) ? 'createPostOpen = true' : '' }}">
             @csrf
             
             <!-- Pilih Komunitas (otomatis dari database) -->
@@ -72,14 +73,33 @@
             </div>
 
             <!-- Lampiran Gambar -->
+            <!-- BARU: seluruh blok ini menggantikan blok Gambar yang lama -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Gambar</label>
+                <input type="file" name="image" x-ref="file"
+                       accept="image/png,image/jpeg,image/webp" class="sr-only"
+                       @change="pick($event)">
+
                 <div class="flex items-center gap-3">
-                    <button type="button" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-colors flex items-center gap-1.5">
+                    <button type="button" @click="$refs.file.click()" x-show="!preview"
+                            class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-colors flex items-center gap-1.5">
                         <span>+ Tambah</span>
                     </button>
-                    <span class="text-[11px] text-slate-400">PNG, JPG, maks 2 MB</span>
+                    <span class="text-[11px] text-slate-400" x-show="!error">PNG, JPG, WEBP, maks 2 MB</span>
+                    <span class="text-[11px] text-red-600 font-medium" x-show="error" x-text="error" style="display: none;"></span>
                 </div>
+
+                <div x-show="preview" class="relative mt-2 inline-block" style="display: none;">
+                    <img :src="preview" alt="Pratinjau gambar" class="max-h-48 rounded-xl border border-slate-200 object-cover">
+                    <button type="button" @click="clear()" aria-label="Hapus gambar"
+                            class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-slate-800 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-colors">
+                        &times;
+                    </button>
+                </div>
+
+                @error('image')
+                    <p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             <!-- Footer Actions -->
@@ -174,3 +194,39 @@
         </form>
     </div>
 </div>
+
+<!-- BARU: fungsi pratinjau & validasi gambar untuk form buat postingan -->
+<script>
+    function postImageUpload() {
+        const MAX_BYTES = 2 * 1024 * 1024;
+        const ALLOWED = ['image/png', 'image/jpeg', 'image/webp'];
+
+        return {
+            preview: null,
+            error: '',
+            pick(event) {
+                const file = event.target.files[0];
+                this.error = '';
+                if (!file) { this.clear(); return; }
+
+                if (!ALLOWED.includes(file.type)) {
+                    this.clear();
+                    this.error = 'Format harus PNG, JPG, atau WEBP.';
+                    return;
+                }
+                if (file.size > MAX_BYTES) {
+                    this.clear();
+                    this.error = 'Ukuran gambar maksimal 2 MB.';
+                    return;
+                }
+                if (this.preview) URL.revokeObjectURL(this.preview);
+                this.preview = URL.createObjectURL(file);
+            },
+            clear() {
+                if (this.preview) URL.revokeObjectURL(this.preview);
+                this.preview = null;
+                this.$refs.file.value = '';
+            }
+        }
+    }
+</script>

@@ -53,6 +53,8 @@
                     {{ $post->content }}
                 </p>
 
+                <x-post-image :post="$post" />
+
                 <!-- Actions: Skor Vote & Jumlah Komentar -->
                 <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
                     <div class="flex items-center gap-3">

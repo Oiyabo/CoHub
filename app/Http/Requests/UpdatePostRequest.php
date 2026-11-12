@@ -21,6 +21,8 @@ class UpdatePostRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string', 'max:500'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'remove_image' => ['nullable', 'boolean'],
         ];
     }
 
@@ -32,6 +34,16 @@ class UpdatePostRequest extends FormRequest
         return [
             'title' => 'judul',
             'content' => 'isi diskusi',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            // ... pesan punyamu kalau ada ...
+            'image.image' => 'File harus berupa gambar.',
+            'image.mimes' => 'Format gambar harus PNG, JPG, atau WEBP.',
+            'image.max'   => 'Ukuran gambar maksimal 2 MB.',
         ];
     }
 }

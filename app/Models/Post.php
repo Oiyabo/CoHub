@@ -16,6 +16,7 @@ class Post extends Model
         'community_id',
         'title',
         'content',
+        'image_path',
     ];
 
     public function user(): BelongsTo
@@ -43,5 +44,12 @@ class Post extends Model
         $up = $this->votes()->where('vote_type', 'upvote')->count();
         $down = $this->votes()->where('vote_type', 'downvote')->count();
         return $up - $down;
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image_path
+            ? asset('storage/'.$this->image_path)
+            : null;
     }
 }

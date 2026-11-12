@@ -8,6 +8,8 @@ use App\Models\Post;
 use App\Support\PostFeed;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+
 
 class PostController extends Controller
 {
@@ -45,7 +47,14 @@ class PostController extends Controller
 
     public function store(StorePostRequest $request)
     {
-        $post = $request->user()->posts()->create($request->validated());
+        $data = $request->validated();
+        unset($data['image']);
+
+        if ($request->hasFile('image')) {
+            $data['image_path'] = $request->file('image')->store('post-images', 'public');
+        }
+
+        $post = $request->user()->posts()->create($data);
 
         return redirect()
             ->route('posts.show', $post)
@@ -63,7 +72,22 @@ class PostController extends Controller
 
     public function update(UpdatePostRequest $request, Post $post)
     {
-        $post->update($request->validated());
+        $data = $request->validated();
+        unset($data['image'], $data['remove_image']);
+
+        if ($request->hasFile('image')) {
+            if ($post->image_path) {
+                Storage::disk('public')->delete($post->image_path);
+            }
+            $data['image_path'] = $request->file('image')->store('post-images', 'public');
+        } elseif ($request->boolean('remove_image')) {
+            if ($post->image_path) {
+                Storage::disk('public')->delete($post->image_path);
+            }
+            $data['image_path'] = null;
+        }
+
+        $post->update($data);
 
         return redirect()
             ->route('posts.show', $post)
@@ -73,6 +97,10 @@ class PostController extends Controller
     public function destroy(Post $post)
     {
         Gate::authorize('delete', $post);
+
+        if ($post->image_path) {
+            Storage::disk('public')->delete($post->image_path);
+        }
 
         $post->delete();
 
