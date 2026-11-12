@@ -2,13 +2,14 @@
     <!-- GUEST / PUBLIC FEED -->
     <div class="space-y-4">
 
-        <!-- Header Banner -->
+        <!-- Header Banner Sederhana -->
         <div class="bg-blue-600 rounded-2xl p-6 text-white shadow-xs">
             <h1 class="text-xl sm:text-2xl font-bold tracking-tight">
                 CoHub (Community Hub)
             </h1>
             <p class="text-xs sm:text-sm text-blue-100 mt-1 leading-relaxed">
-                Platform forum diskusi berbasis komunitas dengan hak akses peran (Admin, Moderator, User, Guest) dan balasan bertingkat.
+                Platform forum diskusi berbasis komunitas dengan hak akses peran (Admin, Moderator, User, Guest) dan
+                balasan bertingkat.
             </p>
         </div>
 
@@ -26,7 +27,8 @@
                             $isAuthorMod = $post->user->isModeratorOf($post->community_id);
                         @endphp
 
-                        <div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
+                        <div
+                            class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
                             {{ $userInitial }}
                         </div>
 
@@ -49,9 +51,10 @@
                         </span>
                     </div>
 
-                    <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-lg">
+                    <a href="{{ route('communities.show', $post->community->name) }}"
+                        class="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition shadow-2xs">
                         c/{{ $post->community->name }}
-                    </span>
+                    </a>
                 </div>
 
                 <!-- Judul & Konten Postingan -->
@@ -73,8 +76,8 @@
                         </div>
 
                         <span class="text-slate-500 font-medium"
-                              data-comment-count>
-                              data-count="{{ $post->comments->count() }}"
+                              data-comment-count
+                              data-count="{{ $post->comments->count() }}">
                             💬 {{ $post->comments->count() }} Komentar
                         </span>
                     </div>
@@ -115,7 +118,7 @@
                             ])
                         @else
                             <p class="text-xs text-slate-400"
-                                data-empty-comments>
+                               data-empty-comments>
                                 Belum ada komentar.
                             </p>
                         @endif

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Facades\Storage;
 
 class Community extends Model
 {
@@ -15,6 +17,7 @@ class Community extends Model
     protected $fillable = [
         'name',
         'description',
+        'banner_path',
         'created_by',
     ];
 
@@ -30,6 +33,29 @@ class Community extends Model
 
     public function moderators(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'community_moderators');
+        return $this->belongsToMany(User::class, 'community_moderators')
+            ->using(CommunityModerator::class)
+            ->withTimestamps();
+    }
+
+    public function isModerator(?User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        return $this->moderators()->where('users.id', $user->id)->exists();
+    }
+
+    public function getBannerUrlAttribute(): ?string
+    {
+        if ($this->banner_path) {
+            /** @var FilesystemAdapter $disk */
+            $disk = Storage::disk('public');
+
+            return $disk->url($this->banner_path);
+        }
+
+        return null;
     }
 }

@@ -4,13 +4,14 @@
         <!-- 1. KOTAK INPUT CEPAT BUAT POST -->
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+                <div
+                    class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
                     {{ strtoupper(substr(Auth::user()->name ?? 'U', 0, 2)) }}
                 </div>
 
                 <button type="button"
-                        @click="$dispatch('open-create-post')"
-                        class="flex-1 bg-slate-50 hover:bg-slate-100 text-left text-xs text-slate-400 px-4 py-2.5 rounded-xl border border-slate-200 transition-colors cursor-pointer">
+                    @click="$dispatch('open-create-post')"
+                    class="flex-1 bg-slate-50 hover:bg-slate-100 text-left text-xs text-slate-400 px-4 py-2.5 rounded-xl border border-slate-200 transition-colors cursor-pointer">
                     Apa yang ingin kamu diskusikan hari ini?
                 </button>
             </div>
@@ -30,7 +31,8 @@
                             $isAuthorMod = $post->user->isModeratorOf($post->community_id);
                         @endphp
 
-                        <div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
+                        <div
+                            class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
                             {{ $userInitial }}
                         </div>
 
@@ -53,9 +55,10 @@
                         </span>
                     </div>
 
-                    <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-lg">
+                    <a href="{{ route('communities.show', $post->community->name) }}"
+                        class="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition shadow-2xs">
                         c/{{ $post->community->name }}
-                    </span>
+                    </a>
                 </div>
 
                 <!-- Judul & Konten Postingan -->
@@ -78,8 +81,8 @@
                         </div>
 
                         <span class="text-slate-500 font-medium"
-                              data-comment-count>
-                              data-count="{{ $post->comments->count() }}"
+                              data-comment-count
+                              data-count="{{ $post->comments->count() }}">
                             💬 {{ $post->comments->count() }} Komentar
                         </span>
                     </div>
@@ -113,14 +116,14 @@
                     @endauth
 
                     <div data-comments-list class="space-y-2">
-                       @if($post->commentTree->isNotEmpty())
+                        @if($post->commentTree->isNotEmpty())
                             @include('components.comment-tree', [
                                 'comments' => $post->commentTree,
                                 'depth' => 0
                             ])
                         @else
                             <p class="text-xs text-slate-400"
-                                data-empty-comments>
+                               data-empty-comments>
                                 Belum ada komentar.
                             </p>
                         @endif
