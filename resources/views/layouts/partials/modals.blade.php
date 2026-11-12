@@ -22,6 +22,26 @@
             </button>
         </div>
 
+        <!-- Form Buat Postingan -->
+        <!-- BARU: enctype="multipart/form-data", x-data digabung dengan postImageUpload(), 'image' ditambah di hasAny -->
+        <form action="{{ route('posts.store') }}" method="POST" enctype="multipart/form-data" class="mt-4 space-y-4"
+              x-data="{ content: @js(old('content', '')), ...postImageUpload() }"
+              x-init="{{ $errors->hasAny(['community_id', 'title', 'content', 'image']) ? 'createPostOpen = true' : '' }}">
+            @csrf
+            
+            <!-- Pilih Komunitas (otomatis dari database) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Pilih komunitas</label>
+                <div class="flex flex-wrap gap-2">
+                    @foreach ($globalCommunities as $comm)
+                        <label class="cursor-pointer">
+                            <input type="radio" name="community_id" value="{{ $comm->id }}" class="peer sr-only"
+                                   {{ (string) old('community_id', $loop->first ? $comm->id : '') === (string) $comm->id ? 'checked' : '' }}>
+                            <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-blue-50 peer-checked:text-blue-600 peer-checked:ring-1 peer-checked:ring-blue-500 transition-all">
+                                c/{{ $comm->name }}
+                            </span>
+                        </label>
+                    @endforeach
         <!-- Form Dummy / Action Route -->
         <form action="{{ Route::has('posts.store') ? route('posts.store') : url('/posts') }}" method="POST"
             class="mt-4 space-y-4">
@@ -60,11 +80,20 @@
                         </span>
                     </label>
                 </div>
+                @error('community_id')
+                    <p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             <!-- Judul -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Judul</label>
+                <input type="text" name="title" value="{{ old('title') }}" maxlength="255" required
+                       placeholder="Contoh: Cara membuat relasi self-referencing di Laravel" 
+                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors">
+                @error('title')
+                    <p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>
+                @enderror
                 <input type="text" name="title" placeholder="Contoh: Cara membuat relasi self-referencing di Laravel"
                     class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors">
             </div>
@@ -72,21 +101,47 @@
             <!-- Isi Diskusi -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Isi diskusi</label>
+                <textarea name="content" rows="4" maxlength="500" required x-model="content"
+                          placeholder="Tuliskan pertanyaan, ide, atau pembahasan lengkapmu di sini..." 
+                          class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors resize-none"></textarea>
+                @error('content')
+                    <p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>
+                @enderror
                 <textarea name="content" rows="4"
                     placeholder="Tuliskan pertanyaan, ide, atau pembahasan lengkapmu di sini..."
                     class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors resize-none"></textarea>
             </div>
 
             <!-- Lampiran Gambar -->
+            <!-- BARU: seluruh blok ini menggantikan blok Gambar yang lama -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Gambar</label>
+                <input type="file" name="image" x-ref="file"
+                       accept="image/png,image/jpeg,image/webp" class="sr-only"
+                       @change="pick($event)">
+
                 <div class="flex items-center gap-3">
+                    <button type="button" @click="$refs.file.click()" x-show="!preview"
+                            class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-colors flex items-center gap-1.5">
                     <button type="button"
                         class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-colors flex items-center gap-1.5">
                         <span>+ Tambah</span>
                     </button>
-                    <span class="text-[11px] text-slate-400">PNG, JPG, maks 2 MB</span>
+                    <span class="text-[11px] text-slate-400" x-show="!error">PNG, JPG, WEBP, maks 2 MB</span>
+                    <span class="text-[11px] text-red-600 font-medium" x-show="error" x-text="error" style="display: none;"></span>
                 </div>
+
+                <div x-show="preview" class="relative mt-2 inline-block" style="display: none;">
+                    <img :src="preview" alt="Pratinjau gambar" class="max-h-48 rounded-xl border border-slate-200 object-cover">
+                    <button type="button" @click="clear()" aria-label="Hapus gambar"
+                            class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-slate-800 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-colors">
+                        &times;
+                    </button>
+                </div>
+
+                @error('image')
+                    <p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             <!-- Footer Actions -->
@@ -96,6 +151,8 @@
                     Simpan draft
                 </button>
                 <div class="flex items-center gap-3">
+                    <span class="text-[11px] text-slate-400 font-mono" x-text="content.length + ' / 500'">0 / 500</span>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all active:scale-95">
                     <span class="text-[11px] text-slate-400 font-mono">0 / 500</span>
                     <button type="submit"
                         class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all active:scale-95">
@@ -193,6 +250,37 @@
     </div>
 </div>
 
+<!-- BARU: fungsi pratinjau & validasi gambar untuk form buat postingan -->
+<script>
+    function postImageUpload() {
+        const MAX_BYTES = 2 * 1024 * 1024;
+        const ALLOWED = ['image/png', 'image/jpeg', 'image/webp'];
+
+        return {
+            preview: null,
+            error: '',
+            pick(event) {
+                const file = event.target.files[0];
+                this.error = '';
+                if (!file) { this.clear(); return; }
+
+                if (!ALLOWED.includes(file.type)) {
+                    this.clear();
+                    this.error = 'Format harus PNG, JPG, atau WEBP.';
+                    return;
+                }
+                if (file.size > MAX_BYTES) {
+                    this.clear();
+                    this.error = 'Ukuran gambar maksimal 2 MB.';
+                    return;
+                }
+                if (this.preview) URL.revokeObjectURL(this.preview);
+                this.preview = URL.createObjectURL(file);
+            },
+            clear() {
+                if (this.preview) URL.revokeObjectURL(this.preview);
+                this.preview = null;
+                this.$refs.file.value = '';
 <script>
     function modalCommunityForm() {
         return {

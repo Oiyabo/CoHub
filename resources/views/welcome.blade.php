@@ -59,13 +59,18 @@
 
                 <!-- Judul & Konten Postingan -->
                 <h2 class="text-base font-bold text-slate-900 mb-1.5">
-                    {{ $post->title }}
+                    <a href="{{ route('posts.show', $post) }}" class="hover:text-blue-600 transition-colors">
+                        {{ $post->title }}
+                    </a>
                 </h2>
 
                 <p class="text-xs sm:text-sm text-slate-600 leading-relaxed mb-3">
                     {{ $post->content }}
                 </p>
 
+                <x-post-image :post="$post" />
+
+                <!-- Actions: Skor Vote & Jumlah Komentar -->
                 <!-- Actions -->
                 <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
                     <div class="flex items-center gap-3">
@@ -75,11 +80,12 @@
                             <span class="text-slate-400">▼</span>
                         </div>
 
+                        <a href="{{ route('posts.show', $post) }}" class="text-slate-500 hover:text-blue-600 font-medium">
                         <span class="text-slate-500 font-medium"
                               data-comment-count
                               data-count="{{ $post->comments->count() }}">
                             💬 {{ $post->comments->count() }} Komentar
-                        </span>
+                        </a>
                     </div>
                 </div>
 
