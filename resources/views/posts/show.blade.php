@@ -1,5 +1,6 @@
 <x-app-layout>
-    <div class="space-y-4">
+    {{-- data-post-id dipakai script komentar AJAX (resources/js/app.js) untuk menemukan kartu post --}}
+    <div class="space-y-4" data-post-id="{{ $post->id }}">
         <x-flash-status />
 
         <!-- Header halaman -->
@@ -19,7 +20,45 @@
         <!-- Isi postingan lengkap -->
         <x-post-card :post="$post" :detail="true" />
 
-        <!-- Komentar: pakai comments/thread.blade.php kalau sudah ada, kalau belum pakai tampilan sementara -->
-        @includeFirst(['comments.thread', 'posts.partials.comments-fallback'], ['post' => $post])
+        <!-- Komentar bertingkat -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs">
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                Komentar:
+            </span>
+
+            @auth
+                <form action="{{ route('comments.store', $post) }}"
+                      method="POST"
+                      class="mb-3 space-y-2"
+                      data-comment-ajax="store">
+                    @csrf
+
+                    <textarea name="content"
+                              rows="2"
+                              required
+                              maxlength="5000"
+                              placeholder="Tulis komentarmu..."
+                              class="w-full text-xs rounded-lg border-slate-200 focus:border-blue-400 focus:ring-blue-400"></textarea>
+
+                    <button type="submit"
+                            class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+                        Kirim Komentar
+                    </button>
+                </form>
+            @endauth
+
+            <div data-comments-list class="space-y-2">
+                @if($post->commentTree->isNotEmpty())
+                    @include('components.comment-tree', [
+                        'comments' => $post->commentTree,
+                        'depth' => 0
+                    ])
+                @else
+                    <p class="text-xs text-slate-400" data-empty-comments>
+                        Belum ada komentar.
+                    </p>
+                @endif
+            </div>
+        </div>
     </div>
 </x-app-layout>

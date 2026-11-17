@@ -33,13 +33,13 @@ class StorePostRequest extends FormRequest
             'community_id' => 'komunitas',
             'title' => 'judul',
             'content' => 'isi diskusi',
+            'image' => 'gambar',
         ];
     }
 
     public function messages(): array
     {
         return [
-            // ... pesan punyamu kalau ada ...
             'image.image' => 'File harus berupa gambar.',
             'image.mimes' => 'Format gambar harus PNG, JPG, atau WEBP.',
             'image.max'   => 'Ukuran gambar maksimal 2 MB.',

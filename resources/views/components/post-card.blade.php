@@ -42,13 +42,13 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <a href="{{ url('/c/' . $post->community->name) }}"
+            <a href="{{ route('communities.show', $post->community->name) }}"
                class="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-0.5 rounded-lg transition-colors">
                 c/{{ $post->community->name }}
             </a>
 
             <!-- Menu titik tiga: Edit / Hapus / Salin tautan -->
-            <div x-data="{ open: false }" class="relative" @click.outside="open = false">
+            <div x-data="{ open: false }" data-no-nav class="relative" @click.outside="open = false">
                 <button type="button" @click="open = !open" aria-label="Menu postingan"
                         class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -98,6 +98,8 @@
         </p>
     @endif
 
+    <x-post-image :post="$post" />
+
     <!-- Aksi: skor vote & jumlah komentar -->
     <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
         <div class="flex items-center gap-3">
@@ -111,7 +113,7 @@
             {{-- KOMENTAR: tautan ke halaman detail --}}
             <a href="{{ route('posts.show', $post) }}"
                class="text-slate-500 hover:text-blue-600 font-medium transition-colors">
-                💬 {{ $commentsCount }} Komentar
+                <span data-comment-count data-count="{{ $commentsCount }}">💬 {{ $commentsCount }} Komentar</span>
             </a>
         </div>
     </div>
