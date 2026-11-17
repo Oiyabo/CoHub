@@ -54,10 +54,10 @@ class Post extends Model
             ? asset('storage/'.$this->image_path)
             : null;
     }
-}
+
     public function buildCommentTree(): Collection
     {
-        if (!$this->relationLoaded('comments')) {
+        if (! $this->relationLoaded('comments')) {
             $this->load('comments.user');
         }
 

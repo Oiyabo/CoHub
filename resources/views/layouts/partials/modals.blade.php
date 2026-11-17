@@ -23,12 +23,11 @@
         </div>
 
         <!-- Form Buat Postingan -->
-        <!-- BARU: enctype="multipart/form-data", x-data digabung dengan postImageUpload(), 'image' ditambah di hasAny -->
         <form action="{{ route('posts.store') }}" method="POST" enctype="multipart/form-data" class="mt-4 space-y-4"
               x-data="{ content: @js(old('content', '')), ...postImageUpload() }"
               x-init="{{ $errors->hasAny(['community_id', 'title', 'content', 'image']) ? 'createPostOpen = true' : '' }}">
             @csrf
-            
+
             <!-- Pilih Komunitas (otomatis dari database) -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-2">Pilih komunitas</label>
@@ -42,43 +41,6 @@
                             </span>
                         </label>
                     @endforeach
-        <!-- Form Dummy / Action Route -->
-        <form action="{{ Route::has('posts.store') ? route('posts.store') : url('/posts') }}" method="POST"
-            class="mt-4 space-y-4">
-            @csrf
-
-            <!-- Pilih Komunitas -->
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-2">Pilih komunitas</label>
-                <div class="flex flex-wrap gap-2">
-                    <label class="cursor-pointer">
-                        <input type="radio" name="community_id" value="1" class="peer sr-only" checked>
-                        <span
-                            class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-blue-50 peer-checked:text-blue-600 peer-checked:ring-1 peer-checked:ring-blue-500 transition-all">
-                            c/laravel-indonesia
-                        </span>
-                    </label>
-                    <label class="cursor-pointer">
-                        <input type="radio" name="community_id" value="2" class="peer sr-only">
-                        <span
-                            class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-emerald-50 peer-checked:text-emerald-600 peer-checked:ring-1 peer-checked:ring-emerald-500 transition-all">
-                            c/ilkom-unila
-                        </span>
-                    </label>
-                    <label class="cursor-pointer">
-                        <input type="radio" name="community_id" value="3" class="peer sr-only">
-                        <span
-                            class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-purple-50 peer-checked:text-purple-600 peer-checked:ring-1 peer-checked:ring-purple-500 transition-all">
-                            c/data-science-ai
-                        </span>
-                    </label>
-                    <label class="cursor-pointer">
-                        <input type="radio" name="community_id" value="4" class="peer sr-only">
-                        <span
-                            class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 peer-checked:bg-amber-50 peer-checked:text-amber-600 peer-checked:ring-1 peer-checked:ring-amber-500 transition-all">
-                            c/seputar-kampus
-                        </span>
-                    </label>
                 </div>
                 @error('community_id')
                     <p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>
@@ -89,31 +51,25 @@
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Judul</label>
                 <input type="text" name="title" value="{{ old('title') }}" maxlength="255" required
-                       placeholder="Contoh: Cara membuat relasi self-referencing di Laravel" 
+                       placeholder="Contoh: Cara membuat relasi self-referencing di Laravel"
                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors">
                 @error('title')
                     <p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>
                 @enderror
-                <input type="text" name="title" placeholder="Contoh: Cara membuat relasi self-referencing di Laravel"
-                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors">
             </div>
 
             <!-- Isi Diskusi -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Isi diskusi</label>
                 <textarea name="content" rows="4" maxlength="500" required x-model="content"
-                          placeholder="Tuliskan pertanyaan, ide, atau pembahasan lengkapmu di sini..." 
+                          placeholder="Tuliskan pertanyaan, ide, atau pembahasan lengkapmu di sini..."
                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors resize-none"></textarea>
                 @error('content')
                     <p class="text-[11px] text-red-600 mt-1">{{ $message }}</p>
                 @enderror
-                <textarea name="content" rows="4"
-                    placeholder="Tuliskan pertanyaan, ide, atau pembahasan lengkapmu di sini..."
-                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors resize-none"></textarea>
             </div>
 
             <!-- Lampiran Gambar -->
-            <!-- BARU: seluruh blok ini menggantikan blok Gambar yang lama -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Gambar</label>
                 <input type="file" name="image" x-ref="file"
@@ -123,8 +79,6 @@
                 <div class="flex items-center gap-3">
                     <button type="button" @click="$refs.file.click()" x-show="!preview"
                             class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-colors flex items-center gap-1.5">
-                    <button type="button"
-                        class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-colors flex items-center gap-1.5">
                         <span>+ Tambah</span>
                     </button>
                     <span class="text-[11px] text-slate-400" x-show="!error">PNG, JPG, WEBP, maks 2 MB</span>
@@ -152,8 +106,6 @@
                 </button>
                 <div class="flex items-center gap-3">
                     <span class="text-[11px] text-slate-400 font-mono" x-text="content.length + ' / 500'">0 / 500</span>
-                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all active:scale-95">
-                    <span class="text-[11px] text-slate-400 font-mono">0 / 500</span>
                     <button type="submit"
                         class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all active:scale-95">
                         Posting
@@ -250,7 +202,7 @@
     </div>
 </div>
 
-<!-- BARU: fungsi pratinjau & validasi gambar untuk form buat postingan -->
+<!-- Pratinjau & validasi gambar untuk form buat postingan -->
 <script>
     function postImageUpload() {
         const MAX_BYTES = 2 * 1024 * 1024;
@@ -281,6 +233,11 @@
                 if (this.preview) URL.revokeObjectURL(this.preview);
                 this.preview = null;
                 this.$refs.file.value = '';
+            },
+        };
+    }
+</script>
+
 <script>
     function modalCommunityForm() {
         return {

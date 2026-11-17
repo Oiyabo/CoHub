@@ -27,9 +27,13 @@
                     const parent = this.$root.parentElement;
                     const cards = {};
                     parent.querySelectorAll(':scope > article').forEach((card) => {
-                        const link = card.querySelector('a[href*="/posts/"]');
-                        const match = link && link.getAttribute('href').match(/\/posts\/(\d+)/);
-                        if (match) cards[match[1]] = card;
+                        let id = card.dataset.postId;
+                        if (!id) {
+                            const link = card.querySelector('a[href*="/posts/"]');
+                            const match = link && link.getAttribute('href').match(/\/posts\/(\d+)/);
+                            id = match ? match[1] : null;
+                        }
+                        if (id) cards[id] = card;
                     });
 
                     data.ids.forEach((id) => {

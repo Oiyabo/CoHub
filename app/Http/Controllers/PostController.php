@@ -10,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 
-
 class PostController extends Controller
 {
     /**
@@ -35,12 +34,15 @@ class PostController extends Controller
 
     public function show(Post $post)
     {
-        $post->load(['user.moderatedCommunities', 'community'])
+        $post->load(['user.moderatedCommunities', 'community', 'comments.user'])
             ->loadCount([
                 'comments',
                 'votes as upvotes_count' => fn ($q) => $q->where('vote_type', 'upvote'),
                 'votes as downvotes_count' => fn ($q) => $q->where('vote_type', 'downvote'),
             ]);
+
+        // Susun komentar bertingkat (dipakai komponen comment-tree milik Iqlima)
+        $post->buildCommentTree();
 
         return view('posts.show', compact('post'));
     }

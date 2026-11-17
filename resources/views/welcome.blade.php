@@ -71,7 +71,6 @@
                 <x-post-image :post="$post" />
 
                 <!-- Actions: Skor Vote & Jumlah Komentar -->
-                <!-- Actions -->
                 <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
                     <div class="flex items-center gap-3">
                         <div class="flex items-center bg-slate-100 text-slate-700 rounded-lg px-2.5 py-1 font-bold">
@@ -81,10 +80,10 @@
                         </div>
 
                         <a href="{{ route('posts.show', $post) }}" class="text-slate-500 hover:text-blue-600 font-medium">
-                        <span class="text-slate-500 font-medium"
-                              data-comment-count
-                              data-count="{{ $post->comments->count() }}">
-                            💬 {{ $post->comments->count() }} Komentar
+                            <span data-comment-count
+                                  data-count="{{ $post->comments->count() }}">
+                                💬 {{ $post->comments->count() }} Komentar
+                            </span>
                         </a>
                     </div>
                 </div>

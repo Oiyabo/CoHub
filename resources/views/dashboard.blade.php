@@ -17,16 +17,13 @@
             </div>
         </div>
 
-        <!-- 2. DAFTAR POSTINGAN NYATA DARI DATABASE SEEDER -->
+        <!-- 2. DAFTAR POSTINGAN -->
         <x-feed-sorter />
+
         @forelse($posts as $post)
             <article class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs cursor-pointer hover:border-blue-300 transition-colors"
-                     onclick="if (!event.target.closest('a, button, form, [data-no-nav]') && !window.getSelection().toString()) window.location.href = '{{ route('posts.show', $post) }}'">
-                
-        <!-- 2. DAFTAR POSTINGAN -->
-        @forelse($posts as $post)
-            <article class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs"
-                     data-post-id="{{ $post->id }}">
+                     data-post-id="{{ $post->id }}"
+                     onclick="if (!event.target.closest('a, button, form, summary, [data-no-nav]') && !window.getSelection().toString()) window.location.href = '{{ route('posts.show', $post) }}'">
 
                 <!-- Author Header -->
                 <div class="flex items-center justify-between gap-3 mb-2.5">
@@ -63,9 +60,10 @@
 
                     <!-- Kanan: badge komunitas + menu titik tiga -->
                     <div class="flex items-center gap-2">
-                        <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-lg">
+                        <a href="{{ route('communities.show', $post->community->name) }}"
+                            class="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition shadow-2xs">
                             c/{{ $post->community->name }}
-                        </span>
+                        </a>
 
                         <div x-data="{ open: false }" data-no-nav class="relative" @click.outside="open = false">
                             <button type="button" @click="open = !open" aria-label="Menu postingan"
@@ -102,10 +100,6 @@
                             </div>
                         </div>
                     </div>
-                    <a href="{{ route('communities.show', $post->community->name) }}"
-                        class="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition shadow-2xs">
-                        c/{{ $post->community->name }}
-                    </a>
                 </div>
 
                 <!-- Judul & Konten Postingan -->
@@ -133,16 +127,16 @@
 
                         <!-- Jumlah Komentar -->
                         <a href="{{ route('posts.show', $post) }}" class="text-slate-500 hover:text-blue-600 font-medium">
-                        <span class="text-slate-500 font-medium"
-                              data-comment-count
-                              data-count="{{ $post->comments->count() }}">
-                            💬 {{ $post->comments->count() }} Komentar
+                            <span data-comment-count
+                                  data-count="{{ $post->comments->count() }}">
+                                💬 {{ $post->comments->count() }} Komentar
+                            </span>
                         </a>
                     </div>
                 </div>
 
-                <!-- DAFTAR KOMENTAR BERTINGKAT -->
-                <div class="mt-3 pt-3 border-t border-slate-100">
+                <!-- DAFTAR KOMENTAR BERTINGKAT (klik di area ini tidak membuka halaman detail) -->
+                <div class="mt-3 pt-3 border-t border-slate-100" data-no-nav>
                     <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
                         Komentar:
                     </span>
