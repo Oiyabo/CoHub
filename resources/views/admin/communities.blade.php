@@ -1,22 +1,16 @@
 <x-app-layout>
     <x-slot name="title">Manajemen Komunitas</x-slot>
 
-    {{-- ═══ HEADER ══════════════════════════════════════════════════════════════ --}}
     <div class="mb-5">
         <div class="flex items-center gap-2 text-xs text-slate-400 mb-2">
             <a href="{{ route('admin.dashboard') }}" class="hover:text-blue-600 transition-colors">Dashboard</a>
             <span>›</span>
             <span class="text-slate-600 font-medium">Komunitas</span>
         </div>
-        <div class="flex items-center justify-between flex-wrap gap-3">
-            <div>
-                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Manajemen Komunitas</h1>
-                <p class="text-xs text-slate-500 mt-0.5">Pantau dan moderasi semua ruang diskusi di CoHub.</p>
-            </div>
-        </div>
+        <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Manajemen Komunitas</h1>
+        <p class="text-xs text-slate-500 mt-0.5">Pantau dan moderasi semua ruang diskusi di CoHub.</p>
     </div>
 
-    {{-- ═══ SEARCH ═════════════════════════════════════════════════════════════ --}}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 mb-4">
         <form method="GET" action="{{ route('admin.communities.index') }}" class="flex items-center gap-3">
             <div class="relative flex-1 min-w-48">
@@ -32,17 +26,14 @@
         </form>
     </div>
 
-    {{-- ═══ TABEL KOMUNITAS ═════════════════════════════════════════════════════ --}}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden" x-data="communityManager()">
 
-        {{-- Flash message --}}
         <div x-show="flashMsg" x-transition
              class="px-4 py-2.5 bg-rose-50 border-b border-rose-100 flex items-center gap-2 text-xs text-rose-700 font-medium"
              style="display:none">
             <span>✓</span> <span x-text="flashMsg"></span>
         </div>
 
-        {{-- Confirm Delete Modal --}}
         <div x-show="confirmOpen"
              class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
              style="display:none">
@@ -127,7 +118,6 @@
             </table>
         </div>
 
-        {{-- Pagination --}}
         @if($communities->hasPages())
             <div class="px-4 py-3 border-t border-slate-100">
                 {{ $communities->links() }}
@@ -167,7 +157,6 @@
                         const data = await response.json();
 
                         if (data.success) {
-                            // Hapus baris dari tabel dengan animasi
                             const row = document.getElementById(`community-row-${id}`);
                             if (row) {
                                 row.style.transition = 'opacity 0.3s, transform 0.3s';

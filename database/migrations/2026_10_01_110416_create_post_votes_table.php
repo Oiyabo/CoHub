@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('post_id')->constrained('posts')->onDelete('cascade');
             $table->enum('vote_type', ['upvote', 'downvote']);
             $table->timestamps();
-            
+
             $table->unique(['user_id', 'post_id']);
         });
     }

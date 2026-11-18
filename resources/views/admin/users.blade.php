@@ -1,25 +1,18 @@
 <x-app-layout>
     <x-slot name="title">Manajemen Pengguna</x-slot>
 
-    {{-- ═══ HEADER ══════════════════════════════════════════════════════════════ --}}
     <div class="mb-5">
         <div class="flex items-center gap-2 text-xs text-slate-400 mb-2">
             <a href="{{ route('admin.dashboard') }}" class="hover:text-blue-600 transition-colors">Dashboard</a>
             <span>›</span>
             <span class="text-slate-600 font-medium">Pengguna</span>
         </div>
-        <div class="flex items-center justify-between flex-wrap gap-3">
-            <div>
-                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Manajemen Pengguna</h1>
-                <p class="text-xs text-slate-500 mt-0.5">Kelola akun, peran, dan status pengguna CoHub.</p>
-            </div>
-        </div>
+        <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Manajemen Pengguna</h1>
+        <p class="text-xs text-slate-500 mt-0.5">Kelola akun, peran, dan status pengguna CoHub.</p>
     </div>
 
-    {{-- ═══ FILTER & SEARCH ════════════════════════════════════════════════════ --}}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 mb-4">
         <form method="GET" action="{{ route('admin.users.index') }}" class="flex items-center gap-3 flex-wrap">
-            {{-- Search --}}
             <div class="relative flex-1 min-w-48">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
                 <input type="text" name="search" value="{{ $search }}"
@@ -27,7 +20,6 @@
                        class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors">
             </div>
 
-            {{-- Filter Tabs --}}
             <div class="flex gap-1.5">
                 @foreach(['all' => 'Semua', 'admin' => 'Admin', 'blocked' => 'Diblokir'] as $val => $label)
                     <button type="submit" name="filter" value="{{ $val }}"
@@ -42,10 +34,8 @@
         </form>
     </div>
 
-    {{-- ═══ TABEL PENGGUNA ══════════════════════════════════════════════════════ --}}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden" x-data="userManager()">
 
-        {{-- Flash message --}}
         <div x-show="flashMsg" x-transition
              class="px-4 py-2.5 bg-emerald-50 border-b border-emerald-100 flex items-center gap-2 text-xs text-emerald-700 font-medium"
              style="display:none">
@@ -127,7 +117,6 @@
             </table>
         </div>
 
-        {{-- Pagination --}}
         @if($users->hasPages())
             <div class="px-4 py-3 border-t border-slate-100">
                 {{ $users->links() }}
@@ -136,7 +125,6 @@
 
     </div>
 
-    {{-- ═══ ALPINE.JS LOGIC ════════════════════════════════════════════════════ --}}
     <script>
         function userManager() {
             return {
@@ -164,7 +152,6 @@
                         const data = await response.json();
 
                         if (data.success) {
-                            // Update badge status
                             const badge = document.getElementById(`status-badge-${userId}`);
                             if (badge) {
                                 badge.innerHTML = data.is_blocked
@@ -172,7 +159,6 @@
                                     : '<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">Aktif</span>';
                             }
 
-                            // Update tombol
                             if (data.is_blocked) {
                                 btn.innerText = '✓ Aktifkan';
                                 btn.className = 'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 px-2.5 py-1 text-[10px] font-bold rounded-lg border transition-colors';
@@ -183,7 +169,6 @@
                                 btn.onclick = () => this.toggleBlock(userId, userName, false);
                             }
 
-                            // Flash message
                             this.showFlash(data.message);
                         }
                     } catch (err) {

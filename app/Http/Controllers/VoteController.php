@@ -11,17 +11,10 @@ use Illuminate\Support\Facades\Auth;
 
 class VoteController extends Controller
 {
-    /**
-     * Toggle upvote/downvote pada sebuah postingan.
-     * - Jika user belum vote → buat vote baru
-     * - Jika user vote yang sama → batalkan (hapus)
-     * - Jika user ganti jenis vote → perbarui
-     */
     public function votePost(Request $request, Post $post)
     {
         $user = Auth::user();
 
-        // Cegah self-voting
         if ($post->user_id === $user->id) {
             return response()->json([
                 'success' => false,
@@ -38,25 +31,21 @@ class VoteController extends Controller
 
         if ($existingVote) {
             if ($existingVote->vote_type === $voteType) {
-                // Vote yang sama → batalkan
                 $existingVote->delete();
                 $userVote = null;
             } else {
-                // Ganti jenis vote
                 $existingVote->update(['vote_type' => $voteType]);
                 $userVote = $voteType;
             }
         } else {
-            // Vote baru
             Vote::create([
-                'user_id' => $user->id,
-                'post_id' => $post->id,
+                'user_id'   => $user->id,
+                'post_id'   => $post->id,
                 'vote_type' => $voteType,
             ]);
             $userVote = $voteType;
         }
 
-        // Hitung skor terbaru
         $post->load('votes');
         $upvotes   = $post->votes->where('vote_type', 'upvote')->count();
         $downvotes = $post->votes->where('vote_type', 'downvote')->count();
@@ -69,14 +58,10 @@ class VoteController extends Controller
         ]);
     }
 
-    /**
-     * Toggle upvote/downvote pada sebuah komentar.
-     */
     public function voteComment(Request $request, Comment $comment)
     {
         $user = Auth::user();
 
-        // Cegah self-voting
         if ($comment->user_id === $user->id) {
             return response()->json([
                 'success' => false,

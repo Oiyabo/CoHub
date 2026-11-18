@@ -18,6 +18,13 @@ class Comment extends Model
         'content',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'deleted_at' => 'datetime',
+        ];
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -47,6 +54,7 @@ class Comment extends Model
     {
         $up = $this->votes()->where('vote_type', 'upvote')->count();
         $down = $this->votes()->where('vote_type', 'downvote')->count();
+
         return $up - $down;
     }
 }

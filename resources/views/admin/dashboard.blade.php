@@ -1,7 +1,6 @@
 <x-app-layout>
     <x-slot name="title">Dashboard Admin</x-slot>
 
-    {{-- ═══ HEADER ══════════════════════════════════════════════════════════════ --}}
     <div class="mb-6">
         <div class="flex items-center justify-between flex-wrap gap-3">
             <div>
@@ -25,10 +24,8 @@
         </div>
     </div>
 
-    {{-- ═══ STAT CARDS ═══════════════════════════════════════════════════════════ --}}
     <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
 
-        {{-- Total Pengguna --}}
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
                 <div>
@@ -40,7 +37,6 @@
             </div>
         </div>
 
-        {{-- Total Post --}}
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
                 <div>
@@ -52,7 +48,6 @@
             </div>
         </div>
 
-        {{-- Total Komentar --}}
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
                 <div>
@@ -64,7 +59,6 @@
             </div>
         </div>
 
-        {{-- Total Komunitas --}}
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
                 <div>
@@ -76,7 +70,6 @@
             </div>
         </div>
 
-        {{-- Pengguna Diblokir --}}
         <div class="bg-white rounded-2xl p-4 border border-rose-100 shadow-xs hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
                 <div>
@@ -88,7 +81,6 @@
             </div>
         </div>
 
-        {{-- Admin --}}
         <div class="bg-white rounded-2xl p-4 border border-amber-100 shadow-xs hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
                 <div>
@@ -102,10 +94,9 @@
 
     </div>
 
-    {{-- ═══ GRAFIK AKTIVITAS 7 HARI ════════════════════════════════════════════ --}}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 mb-5">
         <h2 class="text-sm font-bold text-slate-800 mb-4">📊 Aktivitas 7 Hari Terakhir</h2>
-        <div class="flex items-end gap-3 h-32" id="activity-chart">
+        <div class="flex items-end gap-3 h-32">
             @foreach($activityData as $day)
                 @php
                     $maxActivity = collect($activityData)->max(fn($d) => $d['posts'] + $d['comments']);
@@ -113,17 +104,11 @@
                     $heightPercent = $maxActivity > 0 ? ($total / $maxActivity) * 100 : 0;
                 @endphp
                 <div class="flex-1 flex flex-col items-center gap-1 group">
-                    <div class="relative w-full flex flex-col gap-0.5" style="height: 100px;">
-                        {{-- Bar komentar --}}
+                    <div class="relative w-full" style="height: 100px;">
                         <div class="w-full bg-purple-200 rounded-t absolute bottom-0 transition-all"
-                             style="height: {{ $heightPercent * 0.4 }}%;"
-                             title="{{ $day['comments'] }} komentar">
-                        </div>
-                        {{-- Bar post --}}
+                             style="height: {{ $heightPercent * 0.4 }}%;"></div>
                         <div class="w-full bg-blue-500 rounded-t absolute bottom-0 transition-all"
-                             style="height: {{ $heightPercent * 0.6 }}%; margin-bottom: {{ $heightPercent * 0.4 }}%"
-                             title="{{ $day['posts'] }} post">
-                        </div>
+                             style="height: {{ $heightPercent * 0.6 }}%; margin-bottom: {{ $heightPercent * 0.4 }}%"></div>
                     </div>
                     <span class="text-[10px] text-slate-400 font-medium">{{ $day['date'] }}</span>
                 </div>
@@ -135,10 +120,8 @@
         </div>
     </div>
 
-    {{-- ═══ DUA KOLOM BAWAH ════════════════════════════════════════════════════ --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-        {{-- Pengguna Terbaru --}}
         <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-sm font-bold text-slate-800">👤 Pengguna Terbaru</h2>
@@ -154,7 +137,7 @@
                             <p class="text-xs font-semibold text-slate-800 truncate">{{ $user->name }}</p>
                             <p class="text-[10px] text-slate-400 truncate">{{ $user->email }}</p>
                         </div>
-                        <div class="flex items-center gap-1.5 shrink-0">
+                        <div class="shrink-0">
                             @if($user->isAdmin())
                                 <span class="text-[9px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-lg border border-amber-200">Admin</span>
                             @elseif($user->is_blocked)
@@ -168,7 +151,6 @@
             </div>
         </div>
 
-        {{-- Top Posts --}}
         <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-sm font-bold text-slate-800">🏆 Postingan Terpopuler</h2>

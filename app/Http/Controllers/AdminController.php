@@ -10,9 +10,6 @@ use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
-    /**
-     * Halaman dashboard utama Admin — statistik platform.
-     */
     public function dashboard()
     {
         $stats = [
@@ -24,7 +21,6 @@ class AdminController extends Controller
             'blocked_count'     => User::where('is_blocked', true)->count(),
         ];
 
-        // Data untuk grafik aktivitas: 7 hari terakhir
         $activityData = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subDays($i)->toDateString();
@@ -35,10 +31,8 @@ class AdminController extends Controller
             ];
         }
 
-        // Pengguna terbaru
         $recentUsers = User::latest()->take(5)->get();
 
-        // Postingan dengan skor terbaik (berdasarkan jumlah upvote)
         $topPosts = Post::with(['user', 'community', 'votes'])
             ->get()
             ->sortByDesc(fn ($p) => $p->score)
@@ -48,13 +42,10 @@ class AdminController extends Controller
         return view('admin.dashboard', compact('stats', 'activityData', 'recentUsers', 'topPosts'));
     }
 
-    /**
-     * Halaman manajemen pengguna.
-     */
     public function manageUsers(Request $request)
     {
         $search = $request->get('search', '');
-        $filter = $request->get('filter', 'all'); // all | admin | blocked
+        $filter = $request->get('filter', 'all');
 
         $query = User::withCount(['posts', 'comments']);
 
@@ -76,12 +67,8 @@ class AdminController extends Controller
         return view('admin.users', compact('users', 'search', 'filter'));
     }
 
-    /**
-     * Toggle blokir/aktifkan akun pengguna (AJAX).
-     */
     public function toggleBlockUser(User $user)
     {
-        // Tidak bisa memblokir sesama admin
         if ($user->isAdmin()) {
             return response()->json([
                 'success' => false,
@@ -100,9 +87,6 @@ class AdminController extends Controller
         ]);
     }
 
-    /**
-     * Halaman manajemen komunitas.
-     */
     public function manageCommunities(Request $request)
     {
         $search = $request->get('search', '');
@@ -117,9 +101,6 @@ class AdminController extends Controller
         return view('admin.communities', compact('communities', 'search'));
     }
 
-    /**
-     * Hapus komunitas (AJAX).
-     */
     public function deleteCommunity(Community $community)
     {
         $name = $community->name;
