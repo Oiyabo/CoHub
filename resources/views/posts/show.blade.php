@@ -13,7 +13,13 @@
             </a>
             <div>
                 <h1 class="text-lg font-bold text-slate-900 leading-tight">Postingan</h1>
-                <p class="text-xs text-slate-400">c/{{ $post->community->name }}</p>
+                <p class="text-xs text-slate-400">
+                    @if ($post->community)
+                        c/{{ $post->community->name }}
+                    @else
+                        Postingan umum
+                    @endif
+                </p>
             </div>
         </div>
 

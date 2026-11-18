@@ -30,7 +30,7 @@
                     <span class="text-[9px] font-bold text-amber-700 bg-amber-50 px-1 py-0.5 rounded">
                         Admin
                     </span>
-                @elseif($comment->user && $comment->user->isModeratorOf($comment->post->community_id))
+                    @elseif($comment->user && $comment->post->community_id !== null && $comment->user->isModeratorOf($comment->post->community_id))
                     <span class="text-[9px] font-bold text-purple-700 bg-purple-50 px-1 py-0.5 rounded">
                         Moderator
                     </span>
@@ -158,4 +158,3 @@
     </div>
 
 </div>
-```

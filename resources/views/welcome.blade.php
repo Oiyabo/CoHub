@@ -51,10 +51,16 @@
                         </span>
                     </div>
 
-                    <a href="{{ route('communities.show', $post->community->name) }}"
-                        class="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition shadow-2xs">
-                        c/{{ $post->community->name }}
-                    </a>
+                    @if ($post->community)
+                        <a href="{{ route('communities.show', $post->community->name) }}"
+                            class="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition shadow-2xs">
+                            c/{{ $post->community->name }}
+                        </a>
+                    @else
+                        <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">
+                            Postingan umum
+                        </span>
+                    @endif
                 </div>
 
                 <!-- Judul & Konten Postingan -->
