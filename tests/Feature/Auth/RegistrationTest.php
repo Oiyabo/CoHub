@@ -28,4 +28,21 @@ class RegistrationTest extends TestCase
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
     }
+
+    public function test_registration_validation_failure_keeps_register_modal(): void
+    {
+        $response = $this->post('/register', [
+            '_auth_form' => 'register',
+            'name' => 'Valid Name',
+            'email' => 'invalid-email',
+            'password' => 'password',
+            'password_confirmation' => 'mismatch',
+        ]);
+
+        $response->assertSessionHasErrors(['email', 'password']);
+        $this->assertGuest();
+
+        $follow = $this->get('/');
+        $follow->assertSee("authModal: 'register'", false);
+    }
 }

@@ -1,5 +1,22 @@
 <!-- MODALS AUTH GLOBAL (Login, Register, Reset Password) -->
 
+@php
+    $isRegisterAuth = old('_auth_form') === 'register'
+        || $errors->has('name')
+        || $errors->has('password_confirmation')
+        || old('password_confirmation') !== null;
+
+    $isResetAuth = old('_auth_form') === 'reset'
+        || request()->routeIs('password.reset');
+
+    $isForgotAuth = old('_auth_form') === 'forgot'
+        || session('status')
+        || (request()->routeIs('password.*') && !$isResetAuth);
+
+    $isLoginAuth = old('_auth_form') === 'login'
+        || (!$isRegisterAuth && !$isForgotAuth && !$isResetAuth && $errors->any());
+@endphp
+
 <!-- 1. MODAL LOGIN (Sesuai Gambar 1: Masuk ke CoHub) -->
 <div x-show="authModal === 'login'"
     x-transition:enter="transition ease-out duration-200"
@@ -48,6 +65,7 @@
         <!-- Form Login -->
         <form method="POST" action="{{ route('login') }}" class="space-y-4">
             @csrf
+            <input type="hidden" name="_auth_form" value="login">
 
             <!-- Email -->
             <div>
@@ -55,13 +73,13 @@
                     style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.375rem;">
                     Email
                 </label>
-                <input type="email" id="modal_login_email" name="email" value="{{ old('email') }}" required autofocus
+                <input type="email" id="modal_login_email" name="email" value="{{ old('_auth_form') === 'login' ? old('email') : '' }}" required autofocus
                     placeholder="rizka@email.com"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('email') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isLoginAuth && $errors->has('email')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('email')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isLoginAuth && $errors->has('email'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('email') }}</p>
+                @endif
             </div>
 
             <!-- Kata Sandi -->
@@ -79,11 +97,11 @@
                 </div>
                 <input type="password" id="modal_login_password" name="password" required
                     placeholder="••••••••"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('password') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isLoginAuth && $errors->has('password')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('password')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isLoginAuth && $errors->has('password'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('password') }}</p>
+                @endif
             </div>
 
             <input type="hidden" name="remember" value="1">
@@ -159,6 +177,7 @@
         <!-- Form Register -->
         <form method="POST" action="{{ route('register') }}" class="space-y-4">
             @csrf
+            <input type="hidden" name="_auth_form" value="register">
 
             <!-- Nama Lengkap -->
             <div>
@@ -166,13 +185,13 @@
                     style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.375rem;">
                     Nama lengkap
                 </label>
-                <input type="text" id="modal_register_name" name="name" value="{{ old('name') }}" required autofocus
+                <input type="text" id="modal_register_name" name="name" value="{{ old('_auth_form') === 'register' ? old('name') : '' }}" required autofocus
                     placeholder="Rizka Aprilia"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('name') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isRegisterAuth && $errors->has('name')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('name')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isRegisterAuth && $errors->has('name'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('name') }}</p>
+                @endif
             </div>
 
             <!-- Email -->
@@ -181,13 +200,13 @@
                     style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.375rem;">
                     Email
                 </label>
-                <input type="email" id="modal_register_email" name="email" value="{{ old('email') }}" required
+                <input type="email" id="modal_register_email" name="email" value="{{ old('_auth_form') === 'register' ? old('email') : '' }}" required
                     placeholder="rizka@email.com"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('email') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isRegisterAuth && $errors->has('email')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('email')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isRegisterAuth && $errors->has('email'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('email') }}</p>
+                @endif
             </div>
 
             <!-- Kata Sandi -->
@@ -198,11 +217,11 @@
                 </label>
                 <input type="password" id="modal_register_password" name="password" required
                     placeholder="••••••••"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('password') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isRegisterAuth && $errors->has('password')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('password')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isRegisterAuth && $errors->has('password'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('password') }}</p>
+                @endif
             </div>
 
             <!-- Konfirmasi Kata Sandi -->
@@ -213,11 +232,11 @@
                 </label>
                 <input type="password" id="modal_register_password_confirmation" name="password_confirmation" required
                     placeholder="••••••••"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('password_confirmation') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isRegisterAuth && $errors->has('password_confirmation')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('password_confirmation')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isRegisterAuth && $errors->has('password_confirmation'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('password_confirmation') }}</p>
+                @endif
             </div>
 
             <!-- Tombol Daftar -->
@@ -299,6 +318,7 @@
         <!-- Form Reset Password -->
         <form method="POST" action="{{ route('password.email') }}" class="space-y-4">
             @csrf
+            <input type="hidden" name="_auth_form" value="forgot">
 
             <!-- Email -->
             <div>
@@ -306,13 +326,13 @@
                     style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.375rem;">
                     Email
                 </label>
-                <input type="email" id="modal_forgot_email" name="email" value="{{ old('email') }}" required autofocus
+                <input type="email" id="modal_forgot_email" name="email" value="{{ old('_auth_form') === 'forgot' ? old('email') : '' }}" required autofocus
                     placeholder="rizka@email.com"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('email') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isForgotAuth && $errors->has('email')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('email')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isForgotAuth && $errors->has('email'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('email') }}</p>
+                @endif
             </div>
 
             <!-- Tombol Kirim Tautan Reset -->
@@ -390,7 +410,7 @@
         <!-- Form Atur Kata Sandi Baru -->
         <form method="POST" action="{{ route('password.store') }}" class="space-y-4">
             @csrf
-
+            <input type="hidden" name="_auth_form" value="reset">
             <input type="hidden" name="token" value="{{ request('token') }}">
 
             <!-- Email -->
@@ -401,11 +421,11 @@
                 </label>
                 <input type="email" id="modal_reset_email" name="email" value="{{ old('email', request('email')) }}" required autofocus
                     placeholder="rizka@email.com"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('email') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isResetAuth && $errors->has('email')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('email')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isResetAuth && $errors->has('email'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('email') }}</p>
+                @endif
             </div>
 
             <!-- Kata Sandi Baru -->
@@ -416,11 +436,11 @@
                 </label>
                 <input type="password" id="modal_reset_password" name="password" required
                     placeholder="••••••••"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('password') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isResetAuth && $errors->has('password')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('password')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isResetAuth && $errors->has('password'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('password') }}</p>
+                @endif
             </div>
 
             <!-- Konfirmasi Kata Sandi Baru -->
@@ -431,11 +451,11 @@
                 </label>
                 <input type="password" id="modal_reset_password_confirmation" name="password_confirmation" required
                     placeholder="••••••••"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('password_confirmation') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isResetAuth && $errors->has('password_confirmation')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('password_confirmation')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isResetAuth && $errors->has('password_confirmation'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('password_confirmation') }}</p>
+                @endif
             </div>
 
             <!-- Tombol Simpan -->

@@ -24,11 +24,41 @@
     </style>
 </head>
 
+@php
+    $isRegisterAuth = old('_auth_form') === 'register'
+        || $errors->has('name')
+        || $errors->has('password_confirmation')
+        || old('password_confirmation') !== null;
+
+    $isResetAuth = old('_auth_form') === 'reset'
+        || request()->routeIs('password.reset');
+
+    $isForgotAuth = old('_auth_form') === 'forgot'
+        || session('status')
+        || (request()->routeIs('password.*') && !$isResetAuth);
+
+    $isLoginAuth = old('_auth_form') === 'login'
+        || (!$isRegisterAuth && !$isForgotAuth && !$isResetAuth && $errors->any());
+
+    $initialAuthModal = 'null';
+    if (request('auth')) {
+        $initialAuthModal = "'" . e(request('auth')) . "'";
+    } elseif ($isResetAuth) {
+        $initialAuthModal = "'reset'";
+    } elseif ($isRegisterAuth) {
+        $initialAuthModal = "'register'";
+    } elseif ($isForgotAuth) {
+        $initialAuthModal = "'forgot'";
+    } elseif ($isLoginAuth) {
+        $initialAuthModal = "'login'";
+    }
+@endphp
+
 <body x-data="{
         createPostOpen: false,
         createCommunityOpen: false,
         selectedCommunityId: '{{ old('community_id', isset($community) ? $community->id : '') }}',
-        authModal: {{ request('auth') ? "'" . e(request('auth')) . "'" : ($errors->has('name') ? "'register'" : (session('status') || request()->routeIs('password.*') ? "'forgot'" : ($errors->any() ? "'login'" : 'null'))) }}
+        authModal: {!! $initialAuthModal !!}
     }"
     @open-create-post.window="createPostOpen = true; if ($event.detail && typeof $event.detail.communityId !== 'undefined') { selectedCommunityId = String($event.detail.communityId); } else if ('{{ isset($community) ? $community->id : '' }}') { selectedCommunityId = '{{ isset($community) ? $community->id : '' }}'; }"
     @open-create-community.window="createCommunityOpen = true"
