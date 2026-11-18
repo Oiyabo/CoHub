@@ -28,6 +28,7 @@ class CommunityRequest extends FormRequest
             ],
             'description' => ['nullable', 'string', 'max:1000'],
             'banner' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ];
     }
 
@@ -42,6 +43,8 @@ class CommunityRequest extends FormRequest
             'description.max' => 'Deskripsi tidak boleh melebihi 1000 karakter.',
             'banner.image' => 'File banner harus berupa gambar.',
             'banner.max' => 'Ukuran gambar banner maksimal 2 MB.',
+            'avatar.image' => 'File avatar harus berupa gambar.',
+            'avatar.max' => 'Ukuran gambar avatar maksimal 2 MB.',
         ];
     }
 }

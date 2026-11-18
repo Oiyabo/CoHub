@@ -78,9 +78,19 @@ Route::middleware('auth')->group(function () {
     Route::put('/c/{community:name}', [CommunityController::class, 'update'])->name('communities.update');
     Route::delete('/c/{community:name}', [CommunityController::class, 'destroy'])->name('communities.destroy');
 
+    Route::put('/c/{community:name}/about', [CommunityController::class, 'updateAbout'])->name('communities.about.update');
+
+    Route::post('/c/{community:name}/rules', [CommunityController::class, 'addRule'])->name('communities.rules.add');
+    Route::put('/c/{community:name}/rules/{ruleId}', [CommunityController::class, 'updateRule'])->name('communities.rules.update');
+    Route::delete('/c/{community:name}/rules/{ruleId}', [CommunityController::class, 'deleteRule'])->name('communities.rules.delete');
+    Route::post('/c/{community:name}/rules/reset-default', [CommunityController::class, 'resetDefaultRules'])->name('communities.rules.reset-default');
+
     Route::get('/c/{community:name}/moderators', [CommunityController::class, 'moderatorsIndex'])->name('communities.moderators.index');
     Route::post('/c/{community:name}/moderators', [CommunityController::class, 'addModerator'])->name('communities.moderators.add');
     Route::delete('/c/{community:name}/moderators/{user}', [CommunityController::class, 'removeModerator'])->name('communities.moderators.remove');
+
+    Route::post('/c/{community:name}/join', [CommunityController::class, 'join'])->name('communities.join');
+    Route::delete('/c/{community:name}/leave', [CommunityController::class, 'leave'])->name('communities.leave');
 });
 
 require __DIR__.'/posts.php';

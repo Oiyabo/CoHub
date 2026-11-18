@@ -33,7 +33,7 @@ class CommunityPolicy
 
     public function update(User $user, Community $community): bool
     {
-        return $user->id === $community->created_by;
+        return $user->id === $community->created_by || $community->isModerator($user);
     }
 
     public function delete(User $user, Community $community): bool

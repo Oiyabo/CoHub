@@ -112,10 +112,14 @@
                         </div>
 
                         <!-- Floating Avatar & Body -->
-                        <div class="px-5 pb-5">
+                        <div class="px-5 pb-5 relative z-10">
                             <div
-                                class="w-12 h-12 rounded-2xl {{ $theme['avatar'] }} flex items-center justify-center font-bold text-xs -mt-6 border-4 border-white shadow-2xs">
-                                {{ $initials }}
+                                class="relative z-10 w-12 h-12 rounded-2xl {{ $theme['avatar'] }} flex items-center justify-center font-bold text-xs -mt-6 border-4 border-white shadow-xs overflow-hidden">
+                                @if($comm->avatar_path)
+                                    <img src="{{ $comm->avatar_url }}" alt="{{ $comm->name }}" class="w-full h-full object-cover">
+                                @else
+                                    {{ $initials }}
+                                @endif
                             </div>
 
                             <a href="{{ route('communities.show', $comm->name) }}"

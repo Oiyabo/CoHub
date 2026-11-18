@@ -27,9 +27,10 @@
 <body x-data="{
         createPostOpen: false,
         createCommunityOpen: false,
+        selectedCommunityId: '{{ old('community_id', isset($community) ? $community->id : '') }}',
         authModal: {{ request('auth') ? "'" . e(request('auth')) . "'" : ($errors->has('name') ? "'register'" : (session('status') || request()->routeIs('password.*') ? "'forgot'" : ($errors->any() ? "'login'" : 'null'))) }}
     }"
-    @open-create-post.window="createPostOpen = true"
+    @open-create-post.window="createPostOpen = true; if ($event.detail && typeof $event.detail.communityId !== 'undefined') { selectedCommunityId = String($event.detail.communityId); } else if ('{{ isset($community) ? $community->id : '' }}') { selectedCommunityId = '{{ isset($community) ? $community->id : '' }}'; }"
     @open-create-community.window="createCommunityOpen = true"
     @open-login.window="authModal = 'login'"
     @open-register.window="authModal = 'register'"
@@ -64,8 +65,12 @@
                             <div class="absolute -left-3 w-1.5 h-6 bg-blue-600 rounded-r-full"></div>
                         @endif
                         <a href="{{ route('communities.show', $comm->name) }}" title="c/{{ $comm->name }}"
-                            class="w-10 h-10 rounded-2xl {{ $colorClass }} flex items-center justify-center font-bold text-xs shadow-2xs hover:scale-105 transition-all {{ $isCurrent ? 'ring-2 ring-blue-500' : '' }}">
-                            {{ $code }}
+                            class="w-10 h-10 rounded-2xl {{ $colorClass }} flex items-center justify-center font-bold text-xs shadow-2xs hover:scale-105 transition-all overflow-hidden {{ $isCurrent ? 'ring-2 ring-blue-500' : '' }}">
+                            @if($comm->avatar_path)
+                                <img src="{{ $comm->avatar_url }}" alt="{{ $comm->name }}" class="w-full h-full object-cover">
+                            @else
+                                {{ $code }}
+                            @endif
                         </a>
                     </div>
                 @endforeach

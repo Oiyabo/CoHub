@@ -8,7 +8,7 @@
             collect(explode(' ', $user->name))
                 ->filter()
                 ->take(2)
-                ->map(fn ($word) => substr($word, 0, 1))
+                ->map(fn($word) => substr($word, 0, 1))
                 ->implode('')
         );
 
@@ -29,18 +29,19 @@
             <div class="h-28 sm:h-32 bg-gradient-to-r from-pink-100 via-rose-100 to-purple-100">
             </div>
 
-            <div class="px-5 pb-5">
+            <div class="px-5 pb-5 relative z-10">
 
                 <!-- Avatar dan Edit Profil -->
                 <div class="flex items-end justify-between -mt-12 mb-3">
 
-                    <div class="w-24 h-24 rounded-full bg-pink-100 border-4 border-white flex items-center justify-center text-pink-700 text-3xl font-extrabold shadow-sm">
+                    <div
+                        class="relative z-10 w-24 h-24 rounded-full bg-pink-100 border-4 border-white flex items-center justify-center text-pink-700 text-3xl font-extrabold shadow-sm">
                         {{ $initials }}
                     </div>
 
                     @if($isOwnProfile)
                         <a href="{{ route('profile.edit') }}"
-                           class="mb-1 px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+                            class="mb-1 px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">
                             Edit profil
                         </a>
                     @endif
@@ -102,18 +103,17 @@
 
             @foreach($tabs as $key => $label)
 
-                <a href="{{ route('profile.show', [
+                        <a href="{{ route('profile.show', [
                     'user' => $user->username,
                     'tab' => $key
-                ]) }}"
-                   class="px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors
-                   {{ $tab === $key
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-800 hover:bg-white/50' }}">
+                ]) }}" class="px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors
+                               {{ $tab === $key
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/50' }}">
 
-                    {{ $label }}
+                            {{ $label }}
 
-                </a>
+                        </a>
 
             @endforeach
 
@@ -184,7 +184,7 @@
                         @endif
 
                         <a href="{{ route('posts.show', $comment->post) }}"
-                           class="inline-block text-xs font-semibold text-blue-600 hover:text-blue-700 mt-3">
+                            class="inline-block text-xs font-semibold text-blue-600 hover:text-blue-700 mt-3">
                             Lihat postingan
                         </a>
 
@@ -221,8 +221,7 @@
 
                         @if($vote->post)
 
-                            <a href="{{ route('posts.show', $vote->post) }}"
-                               class="block border-t border-slate-100 py-3">
+                            <a href="{{ route('posts.show', $vote->post) }}" class="block border-t border-slate-100 py-3">
 
                                 <p class="text-xs font-semibold text-slate-800">
                                     {{ $vote->post->title }}
@@ -262,8 +261,8 @@
 
                                 <p class="text-xs text-slate-700">
                                     {{ $vote->comment->deleted_at
-                                        ? '[komentar telah dihapus]'
-                                        : $vote->comment->content }}
+                            ? '[komentar telah dihapus]'
+                            : $vote->comment->content }}
                                 </p>
 
                                 <span class="text-[11px] text-slate-400">
@@ -294,11 +293,12 @@
                 @forelse($communities as $community)
 
                     <a href="{{ route('communities.show', $community->name) }}"
-                       class="bg-white border border-slate-200 rounded-2xl p-4 hover:border-blue-300 transition-colors">
+                        class="bg-white border border-slate-200 rounded-2xl p-4 hover:border-blue-300 transition-colors">
 
                         <div class="flex items-center gap-3">
 
-                            <div class="w-11 h-11 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+                            <div
+                                class="w-11 h-11 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
                                 {{ strtoupper(substr($community->name, 0, 2)) }}
                             </div>
 

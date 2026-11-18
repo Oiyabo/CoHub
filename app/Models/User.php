@@ -66,6 +66,15 @@ class User extends Authenticatable
         return $this->hasMany(Community::class, 'created_by');
     }
 
+    // Komunitas yang diikuti pengguna (anggota)
+    public function joinedCommunities(): BelongsToMany
+    {
+        return $this->belongsToMany(Community::class, 'community_members')
+            ->using(CommunityMember::class)
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
     // Komunitas tempat pengguna menjadi moderator
     public function moderatedCommunities(): BelongsToMany
     {
