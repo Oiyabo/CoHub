@@ -36,6 +36,10 @@ Route::get('/dashboard', function () {
     return view('dashboard', compact('posts'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+// Public User Profile
+Route::get('/@{user:username}', [ProfileController::class, 'show'])
+    ->name('profile.show');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])
         ->name('profile.edit');

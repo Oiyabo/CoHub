@@ -85,6 +85,12 @@
                                 <p class="font-bold text-slate-800 truncate">{{ Auth::user()->name }}</p>
                                 <p class="text-slate-400 text-[11px] truncate">{{ Auth::user()->email }}</p>
                             </div>
+                            @if(Auth::user()->username)
+                                <a href="{{ route('profile.show', ['user' => Auth::user()->username]) }}"
+                                class="block px-4 py-2 text-slate-700 hover:bg-slate-50">
+                                    Lihat Profil
+                                </a>
+                            @endif
                             <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-slate-700 hover:bg-slate-50">
                                 Pengaturan Akun
                             </a>

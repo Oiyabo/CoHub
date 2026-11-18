@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -15,33 +14,20 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
+        'username',
+        'bio',
         'email',
         'password',
         'role',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -50,24 +36,50 @@ class User extends Authenticatable
         ];
     }
 
+    // Postingan yang dibuat pengguna
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class);
     }
 
+    // Komentar dan balasan yang dibuat pengguna
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class);
     }
 
+    // Vote pada postingan
+    public function votes(): HasMany
+    {
+        return $this->hasMany(Vote::class);
+    }
+
+    // Vote pada komentar
+    public function commentVotes(): HasMany
+    {
+        return $this->hasMany(CommentVote::class);
+    }
+
+    // Komunitas yang dibuat pengguna
+    public function createdCommunities(): HasMany
+    {
+        return $this->hasMany(Community::class, 'created_by');
+    }
+
+    // Komunitas tempat pengguna menjadi moderator
     public function moderatedCommunities(): BelongsToMany
     {
-        return $this->belongsToMany(Community::class, 'community_moderators');
+        return $this->belongsToMany(
+            Community::class,
+            'community_moderators'
+        );
     }
 
     public function isModeratorOf(int $communityId): bool
     {
-        return $this->moderatedCommunities()->where('community_id', $communityId)->exists();
+        return $this->moderatedCommunities()
+            ->where('community_id', $communityId)
+            ->exists();
     }
 
     public function isAdmin(): bool
