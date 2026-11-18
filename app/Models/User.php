@@ -75,8 +75,12 @@ class User extends Authenticatable
         );
     }
 
-    public function isModeratorOf(int $communityId): bool
+    public function isModeratorOf(?int $communityId): bool
     {
+        if ($communityId === null) {
+            return false;
+        }
+
         return $this->moderatedCommunities()
             ->where('community_id', $communityId)
             ->exists();

@@ -59,11 +59,18 @@
                     </div>
                     <!-- Kanan: badge komunitas + menu titik tiga -->
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('communities.show', $post->community->name) }}"
-                            class="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition shadow-2xs">
-                            c/{{ $post->community->name }}
-                        </a>
-                        <div x-data="{ open: false }" data-no-nav class="relative" *@click.outside*="open = false">
+                        @if ($post->community)
+                            <a href="{{ route('communities.show', $post->community->name) }}"
+                                class="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition shadow-2xs">
+                                c/{{ $post->community->name }}
+                            </a>
+                        @else
+                            <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                                Postingan umum
+                            </span>
+                        @endif
+
+                        <div x-data="{ open: false }" data-no-nav class="relative" @click.outside="open = false">
                             <button type="button" @click="open = !open" aria-label="Menu postingan"
 
                                     class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer">

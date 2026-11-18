@@ -42,10 +42,16 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <a href="{{ route('communities.show', $post->community->name) }}"
-               class="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-0.5 rounded-lg transition-colors">
-                c/{{ $post->community->name }}
-            </a>
+            @if ($post->community)
+                <a href="{{ route('communities.show', $post->community->name) }}"
+                class="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-0.5 rounded-lg transition-colors">
+                    c/{{ $post->community->name }}
+                </a>
+            @else
+                <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-lg">
+                    Postingan umum
+                </span>
+            @endif
 
             <!-- Menu titik tiga: Edit / Hapus / Salin tautan -->
             <div x-data="{ open: false }" data-no-nav class="relative" @click.outside="open = false">

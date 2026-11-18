@@ -17,7 +17,7 @@ class StorePostRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'community_id' => ['required', 'integer', 'exists:communities,id'],
+            'community_id' => ['nullable', 'integer', 'exists:communities,id'],
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string', 'max:500'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
