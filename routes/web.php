@@ -93,7 +93,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/c/{community:name}/leave', [CommunityController::class, 'leave'])->name('communities.leave');
 });
 
-require __DIR__.'/posts.php';
+require __DIR__ . '/posts.php';
 Route::get('/c/{community:name}', [CommunityController::class, 'show'])->name('communities.show');
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

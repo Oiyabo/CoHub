@@ -44,9 +44,7 @@ class Community extends Model
 
     public function moderators(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'community_moderators')
-            ->using(CommunityModerator::class)
-            ->withTimestamps();
+        return $this->members()->wherePivotIn('role', ['admin', 'moderator']);
     }
 
     public function members(): BelongsToMany
@@ -59,11 +57,12 @@ class Community extends Model
 
     public function isModerator(?User $user): bool
     {
-        if (!$user) {
+        if (!$user)
             return false;
-        }
-
-        return $this->moderators()->where('users.id', $user->id)->exists();
+        return $this->members()
+            ->where('users.id', $user->id)
+            ->wherePivotIn('role', ['admin', 'moderator'])
+            ->exists();
     }
 
     public function isMember(?User $user): bool

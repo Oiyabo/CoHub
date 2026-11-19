@@ -56,7 +56,6 @@ class CommunityController extends Controller
             'avatar_path' => $avatarPath,
             'created_by' => Auth::id(),
         ]);
-        $community->moderators()->attach(Auth::id());
         $community->members()->attach(Auth::id(), ['role' => 'admin']);
 
         return redirect()->route('communities.show', $community->name)
@@ -185,7 +184,6 @@ class CommunityController extends Controller
             return $request->wantsJson() ? response()->json(['success' => false, 'message' => $msg], 422) : back()->with('error', $msg);
         }
 
-        $community->moderators()->attach($user->id);
         $community->members()->updateExistingPivot($user->id, ['role' => 'moderator']);
 
         if ($request->wantsJson()) {
@@ -215,7 +213,7 @@ class CommunityController extends Controller
 
             return back()->with('error', $msg);
         }
-        $community->moderators()->detach($user->id);
+
         $community->members()->updateExistingPivot($user->id, ['role' => 'member']);
 
         if ($request->wantsJson()) {

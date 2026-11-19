@@ -78,10 +78,7 @@ class User extends Authenticatable
     // Komunitas tempat pengguna menjadi moderator
     public function moderatedCommunities(): BelongsToMany
     {
-        return $this->belongsToMany(
-            Community::class,
-            'community_moderators'
-        );
+        return $this->joinedCommunities()->wherePivotIn('role', ['admin', 'moderator']);
     }
 
     public function isModeratorOf(?int $communityId): bool
