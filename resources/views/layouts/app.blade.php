@@ -27,6 +27,7 @@
 @php
     $isRegisterAuth = old('_auth_form') === 'register'
         || $errors->has('name')
+        || $errors->has('username')
         || $errors->has('password_confirmation')
         || old('password_confirmation') !== null;
 
