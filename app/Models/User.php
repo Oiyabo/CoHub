@@ -81,6 +81,16 @@ class User extends Authenticatable
         return $this->joinedCommunities()->wherePivotIn('role', ['admin', 'moderator']);
     }
 
+    public function isAdminOf(?int $communityId): bool
+    {
+        if ($communityId === null)
+            return false;
+
+        return $this->joinedCommunities()
+            ->where('community_id', $communityId)
+            ->wherePivot('role', 'admin')
+            ->exists();
+    }
     public function isModeratorOf(?int $communityId): bool
     {
         if ($communityId === null) {
@@ -90,6 +100,10 @@ class User extends Authenticatable
         return $this->moderatedCommunities()
             ->where('community_id', $communityId)
             ->exists();
+    }
+    public function isAuthorizedOf(?int $communityId): bool
+    {
+        return $this->isAdminOf($communityId) || $this->isModeratorOf($communityId);
     }
 
     public function isAdmin(): bool

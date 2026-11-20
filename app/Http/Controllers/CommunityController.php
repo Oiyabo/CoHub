@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CommunityRequest;
+use App\Http\Requests\UpdateCommunityAboutRequest;
+use App\Http\Requests\CommunityRuleRequest;
+use App\Http\Requests\AddModeratorRequest;
 use App\Models\Community;
 use App\Models\User;
 use App\Models\CommunityMember;
@@ -164,25 +167,11 @@ class CommunityController extends Controller
         return view('communities.moderators', compact('community', 'moderators'));
     }
 
-    public function addModerator(Request $request, Community $community): JsonResponse|RedirectResponse
+    public function addModerator(AddModeratorRequest $request, Community $community): JsonResponse|RedirectResponse
     {
         Gate::authorize('assignModerator', $community);
-        $request->validate([
-            'email' => ['required', 'email', 'exists:users,email'],
-        ], [
-            'email.exists' => 'Akun dengan email tersebut tidak ditemukan di sistem.',
-        ]);
-        $user = User::where('email', $request->email)->first();
-        if ($community->isModerator($user)) {
-            $msg = 'User ini sudah menjadi moderator.';
-            return $request->wantsJson() ? response()->json(['success' => false, 'message' => $msg], 422) : back()->with('error', $msg);
-        }
 
-        // Syarat: Pengguna harus sudah bergabung sebagai member komunitas terlebih dahulu
-        if (!$community->isMember($user)) {
-            $msg = 'Pengguna harus sudah bergabung sebagai anggota komunitas terlebih dahulu sebelum diangkat menjadi moderator.';
-            return $request->wantsJson() ? response()->json(['success' => false, 'message' => $msg], 422) : back()->with('error', $msg);
-        }
+        $user = User::where('email', $request->email)->first();
 
         $community->members()->updateExistingPivot($user->id, ['role' => 'moderator']);
 
@@ -247,64 +236,30 @@ class CommunityController extends Controller
         return back()->with('success', "Kamu telah keluar dari c/{$community->name}.");
     }
 
-    public function updateAbout(Request $request, Community $community): RedirectResponse
+    public function updateAbout(UpdateCommunityAboutRequest $request, Community $community): RedirectResponse
     {
         Gate::authorize('update', $community);
 
-        $validated = $request->validate([
-            'content' => ['nullable', 'string', 'max:5000'],
-            'guidelines' => ['nullable', 'string', 'max:2000'],
-            'website' => ['nullable', 'url', 'max:255'],
-            'discord' => ['nullable', 'url', 'max:255'],
-            'github' => ['nullable', 'url', 'max:255'],
-        ], [
-            'website.url' => 'Format tautan website tidak valid (contoh: https://domain.com).',
-            'discord.url' => 'Format tautan Discord tidak valid (contoh: https://discord.gg/xyz).',
-            'github.url' => 'Format tautan GitHub/Medsos tidak valid (contoh: https://github.com/xyz).',
-        ]);
-
-        $community->about = [
-            'content' => $validated['content'] ?? null,
-            'guidelines' => $validated['guidelines'] ?? null,
-            'website' => $validated['website'] ?? null,
-            'discord' => $validated['discord'] ?? null,
-            'github' => $validated['github'] ?? null,
-        ];
-        $community->save();
+        // Langsung simpan $validated ke kolom about:
+        $community->update(['about' => $request->validated()]);
 
         return redirect()->route('communities.edit', ['community' => $community->name, 'tab' => 'tentang'])
             ->with('success', 'Informasi Tentang Komunitas berhasil diperbarui!');
     }
 
-    public function addRule(Request $request, Community $community): JsonResponse|RedirectResponse
+    public function addRule(CommunityRuleRequest $request, Community $community): JsonResponse|RedirectResponse
     {
         Gate::authorize('update', $community);
+        $validated = $request->validated();
 
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:120'],
-            'description' => ['nullable', 'string', 'max:500'],
-        ], [
-            'title.required' => 'Judul aturan wajib diisi.',
-            'title.max' => 'Judul aturan maksimal 120 karakter.',
-            'description.max' => 'Deskripsi aturan maksimal 500 karakter.',
-        ]);
-
-        $rules = $community->rules ?? [];
-        $newRule = [
-            'id' => (string) (time() . rand(100, 999)),
-            'title' => trim($validated['title']),
-            'description' => !empty($validated['description']) ? trim($validated['description']) : null,
-        ];
-        $rules[] = $newRule;
-        $community->rules = $rules;
-        $community->save();
+        $newRule = $community->addRule($validated);
 
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Aturan berhasil ditambahkan!',
                 'rule' => $newRule,
-                'rules' => $rules,
+                'rules' => $community->rules,
             ]);
         }
 
@@ -312,41 +267,12 @@ class CommunityController extends Controller
             ->with('success', 'Aturan berhasil ditambahkan.');
     }
 
-    public function updateRule(Request $request, Community $community, $ruleId): JsonResponse|RedirectResponse
+    public function updateRule(CommunityRuleRequest $request, Community $community, $ruleId): JsonResponse|RedirectResponse
     {
         Gate::authorize('update', $community);
+        $validated = $request->validated();
 
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:120'],
-            'description' => ['nullable', 'string', 'max:500'],
-        ], [
-            'title.required' => 'Judul aturan wajib diisi.',
-            'title.max' => 'Judul aturan maksimal 120 karakter.',
-            'description.max' => 'Deskripsi aturan maksimal 500 karakter.',
-        ]);
-
-        $rules = $community->rules ?? [];
-        $updated = false;
-
-        foreach ($rules as &$rule) {
-            if (isset($rule['id']) && (string) $rule['id'] === (string) $ruleId) {
-                $rule['title'] = trim($validated['title']);
-                $rule['description'] = !empty($validated['description']) ? trim($validated['description']) : null;
-                $updated = true;
-                break;
-            }
-        }
-        unset($rule);
-
-        // Fallback jika id adalah index numerik array
-        if (!$updated && isset($rules[$ruleId])) {
-            $rules[$ruleId]['title'] = trim($validated['title']);
-            $rules[$ruleId]['description'] = !empty($validated['description']) ? trim($validated['description']) : null;
-            $updated = true;
-        }
-
-        $community->rules = array_values($rules);
-        $community->save();
+        $community->updateRule($ruleId, $validated);
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -364,23 +290,7 @@ class CommunityController extends Controller
     {
         Gate::authorize('update', $community);
 
-        $rules = $community->rules ?? [];
-        $newRules = [];
-
-        foreach ($rules as $idx => $rule) {
-            $matched = false;
-            if (isset($rule['id']) && (string) $rule['id'] === (string) $ruleId) {
-                $matched = true;
-            } elseif ((string) $idx === (string) $ruleId) {
-                $matched = true;
-            }
-            if (!$matched) {
-                $newRules[] = $rule;
-            }
-        }
-
-        $community->rules = array_values($newRules);
-        $community->save();
+        $community->deleteRule($ruleId);
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -398,26 +308,7 @@ class CommunityController extends Controller
     {
         Gate::authorize('update', $community);
 
-        $defaultRules = [
-            [
-                'id' => (string) (time() . '1'),
-                'title' => 'Tetap sesuai topik',
-                'description' => 'Diskusi harus berkaitan dengan topik dan ekosistem terkait.',
-            ],
-            [
-                'id' => (string) (time() . '2'),
-                'title' => 'Hormati sesama anggota',
-                'description' => 'Gunakan bahasa yang santun, dilarang menyerang pribadi atau melecehkan.',
-            ],
-            [
-                'id' => (string) (time() . '3'),
-                'title' => 'Dilarang spam & iklan',
-                'description' => 'Dilarang mempromosikan produk/jasa komersial tanpa izin moderator.',
-            ],
-        ];
-
-        $community->rules = $defaultRules;
-        $community->save();
+        $defaultRules = $community->resetDefaultRules();
 
         if ($request->wantsJson()) {
             return response()->json([
