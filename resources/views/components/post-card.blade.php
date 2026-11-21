@@ -121,6 +121,9 @@
                class="text-slate-500 hover:text-blue-600 font-medium transition-colors">
                 <span data-comment-count data-count="{{ $commentsCount }}">💬 {{ $commentsCount }} Komentar</span>
             </a>
+    
         </div>
+           <x-save-post-button :post="$post" />
     </div>
+
 </article>

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Post extends Model
 {
@@ -40,6 +41,13 @@ class Post extends Model
     {
         return $this->hasMany(Vote::class);
     }
+    // Pengguna yang menyimpan postingan ini
+    public function savedByUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'saved_posts')
+            ->withTimestamps();
+    }
+
 
     public function getScoreAttribute(): int
     {
