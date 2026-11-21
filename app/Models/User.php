@@ -75,6 +75,13 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    // Postingan yang disimpan pengguna
+    public function savedPosts(): BelongsToMany
+    {
+        return $this->belongsToMany(Post::class, 'saved_posts')
+            ->withTimestamps();
+    }
+
     // Komunitas tempat pengguna menjadi moderator
     public function moderatedCommunities(): BelongsToMany
     {

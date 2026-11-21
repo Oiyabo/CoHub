@@ -3,6 +3,7 @@
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SavedPostController;
 use App\Models\Post;
 use Illuminate\Support\Facades\Route;
 
@@ -61,6 +62,15 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])
         ->name('comments.destroy');
+    // Saved Posts
+    Route::get('/saved', [SavedPostController::class, 'index'])
+        ->name('saved.index');
+
+    Route::post('/posts/{post}/save', [SavedPostController::class, 'store'])
+        ->name('saved.store');
+
+    Route::delete('/posts/{post}/save', [SavedPostController::class, 'destroy'])
+        ->name('saved.destroy');
 });
 
 // Community Management

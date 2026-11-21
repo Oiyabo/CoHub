@@ -130,6 +130,7 @@
                             </span>
                         </a>
                     </div>
+                    <x-save-post-button :post="$post" />
                 </div>
                 <!-- DAFTAR KOMENTAR BERTINGKAT (klik di area ini tidak membuka halaman detail) -->
                 <div class="mt-3 pt-3 border-t border-slate-100" data-no-nav>
