@@ -33,16 +33,7 @@ class ProfileController extends Controller
         $commentCount = $user->comments()->count();
 
         // Menggabungkan komunitas yang dibuat dan dimoderasi.
-        $createdCommunityIds = $user->createdCommunities()
-            ->pluck('communities.id');
-
-        $moderatedCommunityIds = $user->moderatedCommunities()
-            ->pluck('communities.id');
-
-        $communityCount = $createdCommunityIds
-            ->merge($moderatedCommunityIds)
-            ->unique()
-            ->count();
+        $communityCount = $user->joinedCommunities()->count();
 
         // Data default untuk masing-masing tab.
         $posts = collect();
@@ -97,19 +88,10 @@ class ProfileController extends Controller
 
         // Tab Komunitas
         if ($tab === 'communities') {
-            $createdCommunities = $user->createdCommunities()
+            $communities = $user->joinedCommunities()
                 ->withCount('posts')
+                ->orderBy('name')
                 ->get();
-
-            $moderatedCommunities = $user->moderatedCommunities()
-                ->withCount('posts')
-                ->get();
-
-            $communities = $createdCommunities
-                ->concat($moderatedCommunities)
-                ->unique('id')
-                ->sortBy('name')
-                ->values();
         }
 
         return view('profiles.show', compact(
