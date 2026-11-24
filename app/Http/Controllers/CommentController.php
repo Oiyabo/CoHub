@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Comment;
 use App\Models\Post;
+use App\Notifications\CommentReplyNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use App\Notifications\NewCommentNotification;
 
 class CommentController extends Controller
 {
@@ -23,7 +25,17 @@ class CommentController extends Controller
             'content' => $validated['content'],
         ]);
 
-        $comment->load(['user', 'post']);
+        $comment->load(['user', 'post.user']);
+
+            // Kirim notifikasi kepada pemilik postingan
+            $recipient = $comment->post->user;
+
+            // Jangan mengirim notifikasi kepada diri sendiri
+            if ($recipient && $recipient->id !== $request->user()->id) {
+                $recipient->notify(
+                    new NewCommentNotification($comment)
+                );
+            }
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -52,6 +64,16 @@ class CommentController extends Controller
         ]);
 
         $reply->load(['user', 'post']);
+
+        // Kirim notifikasi kepada pemilik komentar yang dibalas
+        $recipient = $comment->user;
+
+        // Tidak mengirim notifikasi kepada diri sendiri
+        if ($recipient && $recipient->id !== $request->user()->id) {
+            $recipient->notify(
+                new CommentReplyNotification($reply)
+            );
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
