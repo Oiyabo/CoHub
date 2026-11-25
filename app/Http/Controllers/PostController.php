@@ -35,11 +35,14 @@ class PostController extends Controller
 
     public function show(Post $post)
     {
+        if ($post->community && $post->community->is_private) {
+            Gate::authorize('view', $post->community);
+        }
         $post->load(['user.moderatedCommunities', 'community', 'comments.user'])
             ->loadCount([
                 'comments',
-                'votes as upvotes_count' => fn ($q) => $q->where('vote_type', 'upvote'),
-                'votes as downvotes_count' => fn ($q) => $q->where('vote_type', 'downvote'),
+                'votes as upvotes_count' => fn($q) => $q->where('vote_type', 'upvote'),
+                'votes as downvotes_count' => fn($q) => $q->where('vote_type', 'downvote'),
             ]);
 
         // Susun komentar bertingkat (dipakai komponen comment-tree milik Iqlima)
@@ -166,8 +169,8 @@ class PostController extends Controller
         }
 
         return redirect()
-            ->route('dashboard')
-            ->with('status', 'Postingan berhasil dipublikasikan!');
+            ->route('posts.show', $post)
+            ->with('status', 'Postingan berhasil diperbarui.');
     }
     public function destroy(Post $post)
     {

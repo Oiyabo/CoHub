@@ -223,6 +223,38 @@
                     @csrf
                     @method('PUT')
 
+                    <!-- Tipe Komunitas (Privasi) -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Tipe Komunitas (Privasi)</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" x-data="{ isPrivate: '{{ old('is_private', $community->is_private ? '1' : '0') }}' }">
+                            <!-- Publik -->
+                            <label :class="isPrivate === '0' ? 'border-blue-500 bg-blue-50/30 ring-1 ring-blue-500' : 'border-slate-200 bg-slate-50'"
+                                class="flex items-start gap-3 p-3.5 border rounded-2xl cursor-pointer transition">
+                                <input type="radio" name="is_private" value="0" x-model="isPrivate"
+                                    class="mt-0.5 text-blue-600 focus:ring-0">
+                                <div>
+                                    <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                        <span>🌐 Publik</span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500 mt-0.5 leading-normal">Siapa saja bisa melihat, membaca postingan, dan bergabung.</p>
+                                </div>
+                            </label>
+
+                            <!-- Privat -->
+                            <label :class="isPrivate === '1' ? 'border-blue-500 bg-blue-50/30 ring-1 ring-blue-500' : 'border-slate-200 bg-slate-50'"
+                                class="flex items-start gap-3 p-3.5 border rounded-2xl cursor-pointer transition">
+                                <input type="radio" name="is_private" value="1" x-model="isPrivate"
+                                    class="mt-0.5 text-blue-600 focus:ring-0">
+                                <div>
+                                    <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                        <span>🔒 Privat</span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500 mt-0.5 leading-normal">Hanya anggota yang terdaftar yang dapat melihat postingan dan berdiskusi.</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- Nama Komunitas -->
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1.5">Nama komunitas</label>

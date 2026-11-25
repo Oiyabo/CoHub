@@ -5,19 +5,12 @@ use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SavedPostController;
 use App\Models\Post;
+use App\Support\PostFeed;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
 
 Route::get('/', function () {
-    $posts = Post::where('status', 'published')
-        ->with([
-            'user',
-            'community',
-            'votes',
-            'comments.user',
-        ])
-        ->latest()
-        ->get();
+    $posts = PostFeed::get('untuk-anda');
 
     foreach ($posts as $post) {
         $post->buildCommentTree();
@@ -27,15 +20,7 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    $posts = Post::where('status', 'published')
-        ->with([
-            'user',
-            'community',
-            'votes',
-            'comments.user',
-        ])
-        ->latest()
-        ->get();
+    $posts = PostFeed::get('untuk-anda');
 
     foreach ($posts as $post) {
         $post->buildCommentTree();

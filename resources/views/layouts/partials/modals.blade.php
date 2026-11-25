@@ -319,6 +319,40 @@
                 @enderror
             </div>
 
+            <!-- Tipe Komunitas (Privasi) -->
+            <div>
+                <label class="block text-xs font-bold text-slate-800 mb-1.5">Tipe Komunitas</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" x-data="{ isPrivate: '0' }">
+                    <!-- Publik -->
+                    <label
+                        :class="isPrivate === '0' ? 'border-blue-500 bg-blue-50/30 ring-1 ring-blue-500' : 'border-slate-200 bg-slate-50'"
+                        class="flex items-start gap-2.5 p-3 border rounded-xl cursor-pointer transition">
+                        <input type="radio" name="is_private" value="0" x-model="isPrivate"
+                            class="mt-0.5 text-blue-600 focus:ring-0">
+                        <div>
+                            <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                <span>🌐 Publik</span>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-0.5 leading-normal">Bisa dilihat dan diikuti oleh siapa saja.</p>
+                        </div>
+                    </label>
+
+                    <!-- Privat -->
+                    <label
+                        :class="isPrivate === '1' ? 'border-blue-500 bg-blue-50/30 ring-1 ring-blue-500' : 'border-slate-200 bg-slate-50'"
+                        class="flex items-start gap-2.5 p-3 border rounded-xl cursor-pointer transition">
+                        <input type="radio" name="is_private" value="1" x-model="isPrivate"
+                            class="mt-0.5 text-blue-600 focus:ring-0">
+                        <div>
+                            <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                <span>🔒 Privat</span>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-0.5 leading-normal">Hanya anggota terdaftar yang bisa melihat postingan.</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
             <!-- Nama Komunitas (Live AJAX Check) -->
             <div>
                 <label class="block text-xs font-bold text-slate-800 mb-1">Nama komunitas</label>

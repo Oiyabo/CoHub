@@ -44,8 +44,11 @@
         <div class="flex items-center gap-2">
             @if ($post->community)
                 <a href="{{ route('communities.show', $post->community->name) }}"
-                class="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-0.5 rounded-lg transition-colors">
-                    c/{{ $post->community->name }}
+                class="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-0.5 rounded-lg transition-colors inline-flex items-center gap-1">
+                    @if($post->community->is_private)
+                        <span title="Komunitas Privat">🔒</span>
+                    @endif
+                    <span>c/{{ $post->community->name }}</span>
                 </a>
             @else
                 <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-lg">
