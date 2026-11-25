@@ -27,6 +27,7 @@ class PostFeed
     public static function get(?string $tab = null, int $limit = 30): Collection
     {
         $query = Post::query()
+            ->where('status', 'published')
             ->with(['user.moderatedCommunities', 'community'])
             ->withCount([
                 'comments',
@@ -47,7 +48,9 @@ class PostFeed
      */
     public static function ids(?string $tab = null): SupportCollection
     {
-        $query = Post::query()->select('posts.id');
+        $query = Post::query()
+            ->where('status', 'published')
+            ->select('posts.id');
 
         self::applyOrder($query, $tab);
 

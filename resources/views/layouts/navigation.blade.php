@@ -229,6 +229,26 @@
                                 Tersimpan
                             </a>
 
+                            <!-- DRAFT -->
+                            <a href="{{ route('posts.drafts') }}"
+                                title="Draft"
+                                class="flex items-center gap-1.5 px-2 sm:px-2.5 lg:px-3 py-2 rounded-xl transition-colors
+                                {{ request()->routeIs('posts.drafts')
+                                    ? 'text-blue-600 bg-blue-50 font-bold'
+                                    : 'hover:text-slate-900 hover:bg-slate-50' }}">
+
+                                <svg class="w-4 h-4 shrink-0"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M7 3h7l5 5v13H5V3h2zm7 0v5h5M8 13h8M8 17h8">
+                                    </path>
+                                </svg>
+
+                                <span class="hidden lg:inline">Draft</span>
+                            </a>
+
+
                             <!-- PENGATURAN AKUN -->
                             <a href="{{ route('profile.edit') }}"
                                 class="block px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors">

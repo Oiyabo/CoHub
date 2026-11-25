@@ -157,10 +157,14 @@
 
             <!-- Footer Actions -->
             <div class="flex items-center justify-between pt-4 border-t border-slate-100 shrink-0">
-                <button type="button" @click="createPostOpen = false"
+                <button type="submit"
+                    formaction="{{ route('posts.drafts.store') }}"
+                    formmethod="POST"
+                    formnovalidate
                     class="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors">
                     Simpan draft
                 </button>
+
                 <div class="flex items-center gap-3">
                     <span class="text-[11px] text-slate-400 font-mono" x-text="content.length + ' / 500'">0 / 500</span>
                     <button type="submit"

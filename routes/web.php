@@ -9,12 +9,15 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
 
 Route::get('/', function () {
-    $posts = Post::with([
-        'user',
-        'community',
-        'votes',
-        'comments.user',
-    ])->latest()->get();
+    $posts = Post::where('status', 'published')
+        ->with([
+            'user',
+            'community',
+            'votes',
+            'comments.user',
+        ])
+        ->latest()
+        ->get();
 
     foreach ($posts as $post) {
         $post->buildCommentTree();
@@ -24,12 +27,15 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    $posts = Post::with([
-        'user',
-        'community',
-        'votes',
-        'comments.user',
-    ])->latest()->get();
+    $posts = Post::where('status', 'published')
+        ->with([
+            'user',
+            'community',
+            'votes',
+            'comments.user',
+        ])
+        ->latest()
+        ->get();
 
     foreach ($posts as $post) {
         $post->buildCommentTree();
