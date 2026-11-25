@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -28,8 +29,22 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'login' => ['required_without:email', 'string'],
+            'email' => ['required_without:login', 'string'],
             'password' => ['required', 'string'],
+        ];
+    }
+
+    /**
+     * Get custom attributes for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'login' => 'email, username, atau nama',
+            'email' => 'email, username, atau nama',
         ];
     }
 
@@ -42,11 +57,30 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $login = trim((string) ($this->input('login') ?? $this->input('email')));
+        $password = (string) $this->input('password');
+
+        // Cari pengguna berdasarkan email, username, atau nama
+        $candidates = User::where('email', $login)
+            ->orWhere('username', $login)
+            ->orWhere('name', $login)
+            ->get();
+
+        $authenticated = false;
+        foreach ($candidates as $candidate) {
+            if (Auth::attempt(['id' => $candidate->id, 'password' => $password], $this->boolean('remember'))) {
+                $authenticated = true;
+                break;
+            }
+        }
+
+        if (! $authenticated) {
             RateLimiter::hit($this->throttleKey());
 
+            $errorKey = $this->has('login') ? 'login' : 'email';
+
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                $errorKey => trans('auth.failed'),
             ]);
         }
 
@@ -67,9 +101,10 @@ class LoginRequest extends FormRequest
         event(new Lockout($this));
 
         $seconds = RateLimiter::availableIn($this->throttleKey());
+        $errorKey = $this->has('login') ? 'login' : 'email';
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
+            $errorKey => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
@@ -81,6 +116,8 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        $login = trim((string) ($this->input('login') ?? $this->input('email')));
+
+        return Str::transliterate(Str::lower($login).'|'.$this->ip());
     }
 }
