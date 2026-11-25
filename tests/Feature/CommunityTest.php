@@ -164,4 +164,58 @@ class CommunityTest extends TestCase
 
         $this->assertTrue($comm->fresh()->is_private);
     }
+
+    public function test_creator_can_update_community_with_rules_and_moderators_together(): void
+    {
+        $creator = User::factory()->create();
+        $comm = Community::create([
+            'name' => 'comm-multi-update',
+            'created_by' => $creator->id,
+            'is_private' => false,
+        ]);
+        $comm->members()->attach($creator->id, ['role' => 'admin']);
+
+        $modUser = User::factory()->create();
+        $rules = [
+            ['id' => '1', 'title' => 'Aturan Pertama', 'description' => 'Jangan berisik'],
+            ['id' => '2', 'title' => 'Aturan Kedua', 'description' => 'Tetap sopan'],
+        ];
+
+        $response = $this->actingAs($creator)->put(route('communities.update', $comm->name), [
+            'name' => 'comm-multi-update',
+            'description' => 'Deskripsi baru',
+            'category' => 'Teknologi',
+            'is_private' => 0,
+            'content' => 'Tentang komunitas kami',
+            'rules' => json_encode($rules),
+            'moderators' => [$modUser->id],
+        ]);
+
+        $response->assertRedirect(route('communities.show', 'comm-multi-update'));
+
+        $commFresh = $comm->fresh();
+        $this->assertCount(2, $commFresh->rules);
+        $this->assertEquals('Aturan Pertama', $commFresh->rules[0]['title']);
+        $this->assertEquals('Tentang komunitas kami', $commFresh->about['content']);
+        $this->assertTrue($commFresh->isModerator($modUser));
+    }
+
+    public function test_lookup_moderator_endpoint(): void
+    {
+        $creator = User::factory()->create();
+        $comm = Community::create([
+            'name' => 'comm-lookup-test',
+            'created_by' => $creator->id,
+            'is_private' => false,
+        ]);
+        $targetUser = User::factory()->create(['email' => 'target@example.com']);
+
+        $res = $this->actingAs($creator)->postJson(route('communities.moderators.lookup', $comm->name), [
+            'email' => 'target@example.com',
+        ]);
+
+        $res->assertOk();
+        $res->assertJsonPath('success', true);
+        $res->assertJsonPath('user.email', 'target@example.com');
+    }
 }

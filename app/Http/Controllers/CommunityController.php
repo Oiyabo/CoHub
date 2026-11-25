@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -117,36 +118,144 @@ class CommunityController extends Controller
 
     public function edit(Request $request, Community $community): View
     {
-        $tab = $request->query('tab', 'identitas');
-        if (in_array($tab, ['aturan', 'tentang'])) {
-            Gate::authorize('manageRules', $community);
-        } else {
-            Gate::authorize('update', $community);
-        }
+        Gate::authorize('manageRules', $community);
+        $community->loadMissing(['moderators', 'members']);
 
         return view('communities.edit', compact('community'));
+    }
+
+    public function lookupModerator(Request $request, Community $community): JsonResponse
+    {
+        Gate::authorize('assignModerator', $community);
+
+        $email = trim((string) $request->input('email', ''));
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Masukkan alamat email yang valid.',
+            ], 422);
+        }
+
+        $user = User::where('email', $email)->first();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengguna dengan email tersebut tidak ditemukan di sistem.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'initial' => strtoupper(substr($user->name, 0, 2)),
+                'is_owner' => $user->id === $community->created_by,
+            ],
+        ]);
     }
 
     public function update(CommunityRequest $request, Community $community): RedirectResponse
     {
         Gate::authorize('update', $community);
         $validated = $request->validated();
-        if ($request->hasFile('banner')) {
-            ImageService::delete($community->banner_path);
-            $community->banner_path = ImageService::compressAndStore($request->file('banner'), 'community-banners', maxWidth: 1600);
-        }
-        if ($request->hasFile('avatar')) {
-            ImageService::delete($community->avatar_path);
-            $community->avatar_path = ImageService::compressAndStore($request->file('avatar'), 'community-avatars', maxWidth: 400);
-        }
-        $community->name = strtolower($validated['name']);
-        $community->description = $validated['description'] ?? null;
-        $community->category = $validated['category'] ?? null;
-        $community->is_private = $request->boolean('is_private');
-        $community->save();
+
+        DB::transaction(function () use ($request, $community, $validated) {
+            if ($request->hasFile('banner')) {
+                ImageService::delete($community->banner_path);
+                $community->banner_path = ImageService::compressAndStore($request->file('banner'), 'community-banners', maxWidth: 1600);
+            }
+            if ($request->hasFile('avatar')) {
+                ImageService::delete($community->avatar_path);
+                $community->avatar_path = ImageService::compressAndStore($request->file('avatar'), 'community-avatars', maxWidth: 400);
+            }
+            $community->name = strtolower($validated['name']);
+            $community->description = $validated['description'] ?? null;
+            $community->category = $validated['category'] ?? null;
+            $community->is_private = $request->boolean('is_private');
+
+            $currentAbout = is_array($community->about) ? $community->about : [];
+            $community->about = array_merge($currentAbout, [
+                'content' => $validated['content'] ?? ($currentAbout['content'] ?? null),
+                'guidelines' => $validated['guidelines'] ?? ($currentAbout['guidelines'] ?? null),
+                'website' => $validated['website'] ?? ($currentAbout['website'] ?? null),
+                'discord' => $validated['discord'] ?? ($currentAbout['discord'] ?? null),
+                'github' => $validated['github'] ?? ($currentAbout['github'] ?? null),
+            ]);
+
+            // Update Aturan (Rules) berbarengan
+            if ($request->has('rules')) {
+                $rawRules = $request->input('rules');
+                if (is_string($rawRules)) {
+                    $rawRules = json_decode($rawRules, true) ?? [];
+                }
+                if (is_array($rawRules)) {
+                    $cleanedRules = [];
+                    foreach ($rawRules as $idx => $r) {
+                        $text = is_array($r) ? trim($r['text'] ?? $r['title'] ?? '') : trim((string) $r);
+                        if (!empty($text)) {
+                            $cleanedRules[] = [
+                                'id' => is_array($r) ? (string) ($r['id'] ?? (time() . $idx)) : (string) (time() . $idx),
+                                'title' => $text,
+                                'text' => $text,
+                                'description' => null,
+                            ];
+                        }
+                    }
+                    $community->rules = $cleanedRules;
+                }
+            }
+
+            $community->save();
+
+            // Update Moderator (berbarengan)
+            if ($request->has('moderators')) {
+                $submittedModIds = array_map('intval', (array) $request->input('moderators', []));
+                $ownerId = (int) $community->created_by;
+
+                // Pastikan owner selalu ada dalam daftar moderator/admin
+                if (!in_array($ownerId, $submittedModIds, true)) {
+                    $submittedModIds[] = $ownerId;
+                }
+
+                // Ambil semua pengguna yang saat ini memegang role moderator/admin
+                $currentMods = $community->members()
+                    ->wherePivotIn('role', ['admin', 'moderator'])
+                    ->get();
+
+                // 1. Yang sebelumnya moderator tapi tidak ada di submittedModIds (dan bukan owner): turunkan role jadi member
+                foreach ($currentMods as $mod) {
+                    if ($mod->id !== $ownerId && !in_array($mod->id, $submittedModIds, true)) {
+                        $community->members()->updateExistingPivot($mod->id, ['role' => 'member']);
+                    }
+                }
+
+                // 2. Beri hak moderator untuk yang terdaftar di submittedModIds
+                foreach ($submittedModIds as $modId) {
+                    if ($modId === $ownerId) {
+                        if ($community->isMember(User::find($ownerId))) {
+                            $community->members()->updateExistingPivot($ownerId, ['role' => 'admin']);
+                        } else {
+                            $community->members()->attach($ownerId, ['role' => 'admin']);
+                        }
+                        continue;
+                    }
+
+                    $user = User::find($modId);
+                    if ($user) {
+                        if ($community->isMember($user)) {
+                            $community->members()->updateExistingPivot($user->id, ['role' => 'moderator']);
+                        } else {
+                            $community->members()->attach($user->id, ['role' => 'moderator']);
+                        }
+                    }
+                }
+            }
+        });
 
         return redirect()->route('communities.show', $community->name)
-            ->with('success', 'Informasi komunitas berhasil diperbarui.');
+            ->with('success', 'Informasi komunitas, aturan, dan moderator berhasil diperbarui.');
     }
 
     public function destroy(Community $community): RedirectResponse
