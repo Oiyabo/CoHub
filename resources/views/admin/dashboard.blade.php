@@ -1,23 +1,30 @@
 <x-app-layout>
     <x-slot name="title">Dashboard Admin</x-slot>
 
-    <div class="mb-6">
+    <x-slot name="sidebar">
+        @include('admin.partials.sidebar')
+    </x-slot>
+
+    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-900 rounded-2xl p-5 text-white shadow-xs mb-5">
         <div class="flex items-center justify-between flex-wrap gap-3">
             <div>
-                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">
-                    Dashboard Admin
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-slate-950 mb-2">
+                    Administrator Control Panel
+                </span>
+                <h1 class="text-xl font-extrabold tracking-tight">
+                    Dashboard Ringkasan Admin
                 </h1>
-                <p class="text-xs text-slate-500 mt-0.5">
-                    Selamat datang, <span class="font-semibold text-amber-600">{{ Auth::user()->name }}</span>. Pantau aktivitas CoHub secara real-time.
+                <p class="text-xs text-slate-300 mt-0.5">
+                    Selamat datang, <span class="font-semibold text-amber-400">{{ Auth::user()->name }}</span>. Kelola pengguna, hak akses, dan komunitas CoHub.
                 </p>
             </div>
             <div class="flex items-center gap-2">
                 <a href="{{ route('admin.users.index') }}"
-                   class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-xs">
-                    👥 Kelola Pengguna
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-900 bg-white rounded-xl hover:bg-slate-100 transition-colors shadow-xs">
+                    👥 Pengguna &amp; Role
                 </a>
                 <a href="{{ route('admin.communities.index') }}"
-                   class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-xl transition-colors shadow-xs">
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl transition-colors shadow-xs">
                     🏘️ Kelola Komunitas
                 </a>
             </div>
@@ -64,7 +71,7 @@
                 <div>
                     <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Komunitas</p>
                     <p class="text-3xl font-black text-slate-900 mt-1 leading-none">{{ number_format($stats['total_communities']) }}</p>
-                    <p class="text-[11px] text-slate-400 mt-1">Ruang diskusi aktif</p>
+                    <p class="text-[11px] text-slate-400 mt-1">{{ $stats['closed_communities'] }} ditutup</p>
                 </div>
                 <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-xl shrink-0">🏘️</div>
             </div>
@@ -75,7 +82,7 @@
                 <div>
                     <p class="text-[11px] font-semibold text-rose-400 uppercase tracking-wider">Pengguna Diblokir</p>
                     <p class="text-3xl font-black text-rose-600 mt-1 leading-none">{{ number_format($stats['blocked_count']) }}</p>
-                    <p class="text-[11px] text-slate-400 mt-1">Akun yang dinonaktifkan</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Akses ditangguhkan</p>
                 </div>
                 <div class="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center text-xl shrink-0">🚫</div>
             </div>
@@ -84,22 +91,32 @@
         <div class="bg-white rounded-2xl p-4 border border-amber-100 shadow-xs hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
                 <div>
-                    <p class="text-[11px] font-semibold text-amber-600 uppercase tracking-wider">Total Admin</p>
-                    <p class="text-3xl font-black text-amber-700 mt-1 leading-none">{{ number_format($stats['admin_count']) }}</p>
-                    <p class="text-[11px] text-slate-400 mt-1">Akses penuh platform</p>
+                    <p class="text-[11px] font-semibold text-amber-500 uppercase tracking-wider">Total Admin</p>
+                    <p class="text-3xl font-black text-amber-600 mt-1 leading-none">{{ number_format($stats['admin_count']) }}</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Administrator aktif</p>
                 </div>
-                <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-xl shrink-0">⚡</div>
+                <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-xl shrink-0">🛡️</div>
             </div>
         </div>
 
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 mb-5">
-        <h2 class="text-sm font-bold text-slate-800 mb-4">📊 Aktivitas 7 Hari Terakhir</h2>
-        <div class="flex items-end gap-3 h-32">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-sm font-bold text-slate-800">Aktivitas 7 Hari Terakhir</h2>
+                <p class="text-[11px] text-slate-400">Postingan &amp; komentar baru per hari</p>
+            </div>
+        </div>
+
+        @php
+            $maxActivity = collect($activityData)->map(fn($d) => $d['posts'] + $d['comments'])->max();
+            $maxActivity = max($maxActivity, 1);
+        @endphp
+
+        <div class="flex items-end gap-2 h-28 pt-4">
             @foreach($activityData as $day)
                 @php
-                    $maxActivity = collect($activityData)->max(fn($d) => $d['posts'] + $d['comments']);
                     $total = $day['posts'] + $day['comments'];
                     $heightPercent = $maxActivity > 0 ? ($total / $maxActivity) * 100 : 0;
                 @endphp
@@ -162,9 +179,11 @@
                             {{ $i + 1 }}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-xs font-semibold text-slate-800 line-clamp-2 leading-tight">{{ $post->title }}</p>
+                            <a href="{{ route('posts.show', $post) }}" class="text-xs font-semibold text-slate-800 hover:text-blue-600 line-clamp-2 leading-tight">{{ $post->title }}</a>
                             <div class="flex items-center gap-2 mt-1">
-                                <span class="text-[10px] text-blue-600 font-medium">c/{{ $post->community?->name }}</span>
+                                <span class="text-[10px] text-blue-600 font-medium">
+                                    {{ $post->community ? 'c/' . $post->community->name : 'Postingan umum' }}
+                                </span>
                                 <span class="text-[10px] text-slate-400">·</span>
                                 <span class="text-[10px] text-emerald-600 font-semibold">▲ {{ $post->score }}</span>
                             </div>
