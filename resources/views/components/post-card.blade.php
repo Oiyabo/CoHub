@@ -23,7 +23,14 @@
             <div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
                 {{ strtoupper(substr($author->name, 0, 2)) }}
             </div>
-            <span class="text-xs font-bold text-slate-800">{{ $author->name }}</span>
+            @if($author->username)
+                <a href="{{ route('profile.show', ['user' => $author->username]) }}"
+                   class="text-xs font-bold text-slate-800 hover:text-blue-600 transition-colors">
+                    {{ $author->name }}
+                </a>
+            @else
+                <span class="text-xs font-bold text-slate-800">{{ $author->name }}</span>
+            @endif
 
             @if ($isAuthorAdmin)
                 <span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Admin</span>
@@ -35,11 +42,15 @@
         </div>
 
         <div class="flex items-center gap-2">
-            @if($post->community)
+            @if ($post->community)
                 <a href="{{ route('communities.show', $post->community->name) }}"
-                   class="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-0.5 rounded-lg transition-colors">
+                class="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-0.5 rounded-lg transition-colors">
                     c/{{ $post->community->name }}
                 </a>
+            @else
+                <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-lg">
+                    Postingan umum
+                </span>
             @endif
 
             <div x-data="{ open: false }" data-no-nav class="relative" @click.outside="open = false">
@@ -106,5 +117,7 @@
                 <span data-comment-count data-count="{{ $commentsCount }}">💬 {{ $commentsCount }} Komentar</span>
             </a>
         </div>
+        <x-save-post-button :post="$post" />
     </div>
+
 </article>

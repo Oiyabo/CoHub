@@ -12,12 +12,28 @@ class StorePostRequest extends FormRequest
     }
 
     /**
-     * @return array<string, array<int, string>>
+     * @return array<string, array<int, mixed>>
      */
     public function rules(): array
     {
         return [
-            'community_id' => ['required', 'integer', 'exists:communities,id'],
+            // Boleh kosong (postingan umum). Kalau diisi, user harus sudah menjadi anggota
+            // komunitas itu (tercatat di tabel community_members lewat tombol "Gabung").
+            'community_id' => [
+                'nullable',
+                'integer',
+                'exists:communities,id',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    $isMember = $this->user()
+                        ->joinedCommunities()
+                        ->where('communities.id', $value)
+                        ->exists();
+
+                    if (! $isMember) {
+                        $fail('Kamu harus bergabung ke komunitas ini terlebih dahulu sebelum memposting di sana.');
+                    }
+                },
+            ],
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string', 'max:500'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],

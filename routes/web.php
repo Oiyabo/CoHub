@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SavedPostController;
 use App\Http\Controllers\VoteController;
 use App\Models\Post;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,9 @@ Route::get('/dashboard', function () {
     return view('dashboard', compact('posts'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::get('/@{user:username}', [ProfileController::class, 'show'])
+    ->name('profile.show');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])
         ->name('profile.edit');
@@ -59,6 +63,15 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])
         ->name('comments.destroy');
+
+    Route::get('/saved', [SavedPostController::class, 'index'])
+        ->name('saved.index');
+
+    Route::post('/posts/{post}/save', [SavedPostController::class, 'store'])
+        ->name('saved.store');
+
+    Route::delete('/posts/{post}/save', [SavedPostController::class, 'destroy'])
+        ->name('saved.destroy');
 });
 
 Route::middleware('auth')->prefix('api')->group(function () {
@@ -88,12 +101,22 @@ Route::middleware('auth')->group(function () {
     Route::put('/c/{community:name}', [CommunityController::class, 'update'])->name('communities.update');
     Route::delete('/c/{community:name}', [CommunityController::class, 'destroy'])->name('communities.destroy');
 
+    Route::put('/c/{community:name}/about', [CommunityController::class, 'updateAbout'])->name('communities.about.update');
+
+    Route::post('/c/{community:name}/rules', [CommunityController::class, 'addRule'])->name('communities.rules.add');
+    Route::put('/c/{community:name}/rules/{ruleId}', [CommunityController::class, 'updateRule'])->name('communities.rules.update');
+    Route::delete('/c/{community:name}/rules/{ruleId}', [CommunityController::class, 'deleteRule'])->name('communities.rules.delete');
+    Route::post('/c/{community:name}/rules/reset-default', [CommunityController::class, 'resetDefaultRules'])->name('communities.rules.reset-default');
+
     Route::get('/c/{community:name}/moderators', [CommunityController::class, 'moderatorsIndex'])->name('communities.moderators.index');
     Route::post('/c/{community:name}/moderators', [CommunityController::class, 'addModerator'])->name('communities.moderators.add');
     Route::delete('/c/{community:name}/moderators/{user}', [CommunityController::class, 'removeModerator'])->name('communities.moderators.remove');
+
+    Route::post('/c/{community:name}/join', [CommunityController::class, 'join'])->name('communities.join');
+    Route::delete('/c/{community:name}/leave', [CommunityController::class, 'leave'])->name('communities.leave');
 });
 
-require __DIR__.'/posts.php';
+require __DIR__ . '/posts.php';
 Route::get('/c/{community:name}', [CommunityController::class, 'show'])->name('communities.show');
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

@@ -6,7 +6,7 @@
              x-data="{ content: @js(old('content', $post->content)) }">
 
             <h1 class="text-base font-bold text-slate-800">Edit postingan</h1>
-            <p class="text-xs text-slate-400 mt-0.5">c/{{ $post->community->name }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">{{ $post->community ? 'c/'.$post->community->name : 'Postingan umum' }}</p>
 
             <form method="POST" action="{{ route('posts.update', $post) }}" enctype="multipart/form-data"
                   class="mt-4 space-y-4">

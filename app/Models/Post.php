@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Post extends Model
 {
@@ -39,6 +41,13 @@ class Post extends Model
     {
         return $this->hasMany(Vote::class);
     }
+    // Pengguna yang menyimpan postingan ini
+    public function savedByUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'saved_posts')
+            ->withTimestamps();
+    }
+
 
     public function getScoreAttribute(): int
     {
@@ -50,9 +59,11 @@ class Post extends Model
 
     public function getImageUrlAttribute(): ?string
     {
-        return $this->image_path
-            ? asset('storage/'.$this->image_path)
-            : null;
+        if (!$this->image_path) {
+            return null;
+        }
+
+        return Storage::disk('s3')->url($this->image_path);
     }
 
     public function buildCommentTree(): Collection

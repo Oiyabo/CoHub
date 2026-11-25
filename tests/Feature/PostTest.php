@@ -38,11 +38,18 @@ class PostTest extends TestCase
 
     private function makeCommunity(?User $creator = null, string $name = 'laravel-indonesia'): Community
     {
-        return Community::create([
+        $creator ??= User::factory()->create();
+
+        $community = Community::create([
             'name' => $name,
             'description' => 'Komunitas uji',
-            'created_by' => ($creator ?? User::factory()->create())->id,
+            'created_by' => $creator->id,
         ]);
+
+        // Sama seperti saat komunitas dibuat lewat aplikasi: pembuat otomatis jadi anggota (admin).
+        $community->members()->attach($creator->id, ['role' => 'admin']);
+
+        return $community;
     }
 
     private function makePost(User $author, Community $community, string $title = 'Judul uji'): Post
@@ -173,6 +180,89 @@ class PostTest extends TestCase
         $this->assertModelExists($post);
     }
 
+    // ------------------------------------- Keanggotaan komunitas (R-04, R-05)
+
+    public function test_user_can_post_without_a_community(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('posts.store'), [
+            'community_id' => '',
+            'title' => 'Postingan umum',
+            'content' => 'Tidak masuk komunitas mana pun',
+        ]);
+
+        $post = Post::firstOrFail();
+        $this->assertNull($post->community_id);
+        $response->assertRedirect(route('posts.show', $post));
+
+        $this->get(route('posts.show', $post))->assertOk()->assertSee('Postingan umum');
+        $this->actingAs($user)->get(route('posts.edit', $post))->assertOk();
+    }
+
+    public function test_user_cannot_post_in_a_community_they_have_not_joined(): void
+    {
+        $creator = User::factory()->create();
+        $outsider = User::factory()->create();
+        $community = $this->makeCommunity($creator);
+
+        $this->actingAs($outsider)->post(route('posts.store'), [
+            'community_id' => $community->id,
+            'title' => 'Mau nyelonong',
+            'content' => 'Belum gabung',
+        ])->assertSessionHasErrors('community_id');
+
+        $this->assertDatabaseCount('posts', 0);
+    }
+
+    public function test_user_can_post_in_a_community_after_joining(): void
+    {
+        $creator = User::factory()->create();
+        $member = User::factory()->create();
+        $community = $this->makeCommunity($creator);
+
+        $this->actingAs($member)->post(route('communities.join', $community->name));
+
+        $this->actingAs($member)->post(route('posts.store'), [
+            'community_id' => $community->id,
+            'title' => 'Setelah gabung',
+            'content' => 'Sekarang boleh',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame($community->id, Post::firstOrFail()->community_id);
+    }
+
+    public function test_user_cannot_post_in_a_community_after_leaving_it(): void
+    {
+        $creator = User::factory()->create();
+        $member = User::factory()->create();
+        $community = $this->makeCommunity($creator);
+        $community->members()->attach($member->id, ['role' => 'member']);
+
+        $this->actingAs($member)->delete(route('communities.leave', $community->name));
+
+        $this->actingAs($member)->post(route('posts.store'), [
+            'community_id' => $community->id,
+            'title' => 'Sudah keluar',
+            'content' => 'Tidak boleh lagi',
+        ])->assertSessionHasErrors('community_id');
+    }
+
+    public function test_post_modal_lists_only_joined_communities(): void
+    {
+        $creator = User::factory()->create();
+        $user = User::factory()->create();
+
+        $joined = $this->makeCommunity($creator, 'komunitas-diikuti');
+        $notJoined = $this->makeCommunity($creator, 'komunitas-belum-diikuti');
+        $joined->members()->attach($user->id, ['role' => 'member']);
+
+        $this->actingAs($user)->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('<option value="'.$joined->id.'"', false)
+            ->assertDontSee('<option value="'.$notJoined->id.'"', false);
+    }
+
     // ------------------------------------------------------------ Moderator
 
     public function test_moderator_can_delete_posts_only_in_their_own_community(): void
@@ -182,7 +272,7 @@ class PostTest extends TestCase
 
         $own = $this->makeCommunity($author, 'komunitas-a');
         $other = $this->makeCommunity($author, 'komunitas-b');
-        $moderator->moderatedCommunities()->attach($own->id);
+        $moderator->joinedCommunities()->attach($own->id, ['role' => 'moderator']);
 
         $postInOwn = $this->makePost($author, $own, 'Post di komunitas A');
         $postInOther = $this->makePost($author, $other, 'Post di komunitas B');
@@ -200,7 +290,7 @@ class PostTest extends TestCase
         $author = User::factory()->create();
         $moderator = User::factory()->create();
         $community = $this->makeCommunity($author);
-        $moderator->moderatedCommunities()->attach($community->id);
+        $moderator->joinedCommunities()->attach($community->id, ['role' => 'moderator']);
         $post = $this->makePost($author, $community);
 
         $this->actingAs($moderator)->get(route('posts.edit', $post))->assertForbidden();

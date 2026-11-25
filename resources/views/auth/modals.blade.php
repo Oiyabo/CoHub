@@ -1,5 +1,23 @@
 <!-- MODALS AUTH GLOBAL (Login, Register, Reset Password) -->
 
+@php
+    $isRegisterAuth = old('_auth_form') === 'register'
+        || $errors->has('name')
+        || $errors->has('username')
+        || $errors->has('password_confirmation')
+        || old('password_confirmation') !== null;
+
+    $isResetAuth = old('_auth_form') === 'reset'
+        || request()->routeIs('password.reset');
+
+    $isForgotAuth = old('_auth_form') === 'forgot'
+        || session('status')
+        || (request()->routeIs('password.*') && !$isResetAuth);
+
+    $isLoginAuth = old('_auth_form') === 'login'
+        || (!$isRegisterAuth && !$isForgotAuth && !$isResetAuth && $errors->any());
+@endphp
+
 <!-- 1. MODAL LOGIN (Sesuai Gambar 1: Masuk ke CoHub) -->
 <div x-show="authModal === 'login'"
     x-transition:enter="transition ease-out duration-200"
@@ -48,6 +66,7 @@
         <!-- Form Login -->
         <form method="POST" action="{{ route('login') }}" class="space-y-4">
             @csrf
+            <input type="hidden" name="_auth_form" value="login">
 
             <!-- Email -->
             <div>
@@ -55,13 +74,13 @@
                     style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.375rem;">
                     Email
                 </label>
-                <input type="email" id="modal_login_email" name="email" value="{{ old('email') }}" required autofocus
+                <input type="email" id="modal_login_email" name="email" value="{{ old('_auth_form') === 'login' ? old('email') : '' }}" required autofocus
                     placeholder="rizka@email.com"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('email') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isLoginAuth && $errors->has('email')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('email')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isLoginAuth && $errors->has('email'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('email') }}</p>
+                @endif
             </div>
 
             <!-- Kata Sandi -->
@@ -79,11 +98,11 @@
                 </div>
                 <input type="password" id="modal_login_password" name="password" required
                     placeholder="••••••••"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('password') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isLoginAuth && $errors->has('password')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('password')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isLoginAuth && $errors->has('password'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('password') }}</p>
+                @endif
             </div>
 
             <input type="hidden" name="remember" value="1">
@@ -157,8 +176,9 @@
         </h2>
 
         <!-- Form Register -->
-        <form method="POST" action="{{ route('register') }}" class="space-y-4">
+        <form method="POST" action="{{ route('register') }}" x-data="registerUsernameManager()" class="space-y-4">
             @csrf
+            <input type="hidden" name="_auth_form" value="register">
 
             <!-- Nama Lengkap -->
             <div>
@@ -166,13 +186,75 @@
                     style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.375rem;">
                     Nama lengkap
                 </label>
-                <input type="text" id="modal_register_name" name="name" value="{{ old('name') }}" required autofocus
+                <input type="text" id="modal_register_name" name="name"
+                    x-model="name"
+                    @input="onNameInput"
+                    required autofocus
                     placeholder="Rizka Aprilia"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('name') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isRegisterAuth && $errors->has('name')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('name')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isRegisterAuth && $errors->has('name'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('name') }}</p>
+                @endif
+
+                <!-- Label & Generator Username (Otomatis / Manual) -->
+                <div class="mt-2 p-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-xs space-y-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="text-[11px] font-semibold text-slate-500 shrink-0">Username:</span>
+                            <template x-if="!isManual">
+                                <span class="font-bold text-blue-600 truncate text-xs" x-text="username ? '@' + username : '@...' "></span>
+                            </template>
+                        </div>
+
+                        <!-- Tombol Pilih Mode: Otomatis vs Edit Manual -->
+                        <button type="button" @click="toggleMode()"
+                            class="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline shrink-0 cursor-pointer flex items-center gap-1">
+                            <span x-show="!isManual">✏️ Edit manual</span>
+                            <span x-show="isManual" style="display: none;">🔄 Otomatiskan</span>
+                        </button>
+                    </div>
+
+                    <!-- Input Username Saat Mode Manual -->
+                    <div x-show="isManual" style="display: none;" class="pt-0.5">
+                        <div class="relative flex items-center">
+                            <span class="absolute left-3 text-slate-400 font-bold text-xs select-none">@</span>
+                            <input type="text" x-model="username" @input="onUsernameInput"
+                                placeholder="nama_pengguna"
+                                class="w-full pl-7 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
+                        </div>
+                    </div>
+
+                    <!-- Input Tersembunyi (selalu dikirim ke backend baik mode otomatis maupun manual) -->
+                    <input type="hidden" name="username" :value="username">
+
+                    <!-- Keterangan Status / Validasi Keunikan -->
+                    <div class="flex items-center justify-between text-[11px] pt-0.5" x-show="username">
+                        <div class="flex items-center gap-1.5">
+                            <template x-if="isChecking">
+                                <span class="text-slate-400 flex items-center gap-1">
+                                    <svg class="animate-spin h-3 w-3 text-slate-400" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                                    Memeriksa keunikan...
+                                </span>
+                            </template>
+                            <template x-if="!isChecking && isAvailable">
+                                <span class="text-emerald-600 font-semibold flex items-center gap-1">
+                                    ✓ <span x-text="isManual ? 'Username tersedia' : 'Otomatis dijamin unik'"></span>
+                                </span>
+                            </template>
+                            <template x-if="!isChecking && !isAvailable">
+                                <span class="text-rose-600 font-semibold flex items-center gap-1">
+                                    ✕ <span x-text="feedbackMsg || 'Username sudah digunakan'"></span>
+                                </span>
+                            </template>
+                        </div>
+                        <span class="text-[10px] text-slate-400" x-show="!isManual && !isChecking">Otomatis dari nama</span>
+                    </div>
+
+                    @if($isRegisterAuth && $errors->has('username'))
+                        <p class="text-[11px] text-rose-600 font-medium">{{ $errors->first('username') }}</p>
+                    @endif
+                </div>
             </div>
 
             <!-- Email -->
@@ -181,13 +263,13 @@
                     style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.375rem;">
                     Email
                 </label>
-                <input type="email" id="modal_register_email" name="email" value="{{ old('email') }}" required
+                <input type="email" id="modal_register_email" name="email" value="{{ old('_auth_form') === 'register' ? old('email') : '' }}" required
                     placeholder="rizka@email.com"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('email') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isRegisterAuth && $errors->has('email')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('email')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isRegisterAuth && $errors->has('email'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('email') }}</p>
+                @endif
             </div>
 
             <!-- Kata Sandi -->
@@ -198,11 +280,11 @@
                 </label>
                 <input type="password" id="modal_register_password" name="password" required
                     placeholder="••••••••"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('password') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isRegisterAuth && $errors->has('password')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('password')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isRegisterAuth && $errors->has('password'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('password') }}</p>
+                @endif
             </div>
 
             <!-- Konfirmasi Kata Sandi -->
@@ -213,11 +295,11 @@
                 </label>
                 <input type="password" id="modal_register_password_confirmation" name="password_confirmation" required
                     placeholder="••••••••"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('password_confirmation') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isRegisterAuth && $errors->has('password_confirmation')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('password_confirmation')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isRegisterAuth && $errors->has('password_confirmation'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('password_confirmation') }}</p>
+                @endif
             </div>
 
             <!-- Tombol Daftar -->
@@ -299,6 +381,7 @@
         <!-- Form Reset Password -->
         <form method="POST" action="{{ route('password.email') }}" class="space-y-4">
             @csrf
+            <input type="hidden" name="_auth_form" value="forgot">
 
             <!-- Email -->
             <div>
@@ -306,13 +389,13 @@
                     style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.375rem;">
                     Email
                 </label>
-                <input type="email" id="modal_forgot_email" name="email" value="{{ old('email') }}" required autofocus
+                <input type="email" id="modal_forgot_email" name="email" value="{{ old('_auth_form') === 'forgot' ? old('email') : '' }}" required autofocus
                     placeholder="rizka@email.com"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('email') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isForgotAuth && $errors->has('email')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('email')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isForgotAuth && $errors->has('email'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('email') }}</p>
+                @endif
             </div>
 
             <!-- Tombol Kirim Tautan Reset -->
@@ -390,7 +473,7 @@
         <!-- Form Atur Kata Sandi Baru -->
         <form method="POST" action="{{ route('password.store') }}" class="space-y-4">
             @csrf
-
+            <input type="hidden" name="_auth_form" value="reset">
             <input type="hidden" name="token" value="{{ request('token') }}">
 
             <!-- Email -->
@@ -401,11 +484,11 @@
                 </label>
                 <input type="email" id="modal_reset_email" name="email" value="{{ old('email', request('email')) }}" required autofocus
                     placeholder="rizka@email.com"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('email') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isResetAuth && $errors->has('email')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('email')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isResetAuth && $errors->has('email'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('email') }}</p>
+                @endif
             </div>
 
             <!-- Kata Sandi Baru -->
@@ -416,11 +499,11 @@
                 </label>
                 <input type="password" id="modal_reset_password" name="password" required
                     placeholder="••••••••"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('password') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isResetAuth && $errors->has('password')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('password')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isResetAuth && $errors->has('password'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('password') }}</p>
+                @endif
             </div>
 
             <!-- Konfirmasi Kata Sandi Baru -->
@@ -431,11 +514,11 @@
                 </label>
                 <input type="password" id="modal_reset_password_confirmation" name="password_confirmation" required
                     placeholder="••••••••"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors @error('password_confirmation') border-rose-500 @enderror"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors {{ ($isResetAuth && $errors->has('password_confirmation')) ? 'border-rose-500' : '' }}"
                     style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; background-color: #ffffff; outline: none;">
-                @error('password_confirmation')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
-                @enderror
+                @if($isResetAuth && $errors->has('password_confirmation'))
+                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $errors->first('password_confirmation') }}</p>
+                @endif
             </div>
 
             <!-- Tombol Simpan -->
@@ -459,3 +542,97 @@
         </form>
     </div>
 </div>
+
+<script>
+    function registerUsernameManager() {
+        return {
+            name: @js(old('_auth_form') === 'register' ? old('name') : ''),
+            username: @js(old('_auth_form') === 'register' ? old('username') : ''),
+            isManual: @js(old('_auth_form') === 'register' && old('username') !== null),
+            isChecking: false,
+            isAvailable: true,
+            feedbackMsg: '',
+            debounceTimer: null,
+
+            init() {
+                if (this.name && !this.username) {
+                    this.generateFromBackend(this.name);
+                } else if (this.username) {
+                    this.checkFromBackend(this.username);
+                }
+            },
+
+            onNameInput() {
+                if (!this.isManual) {
+                    clearTimeout(this.debounceTimer);
+                    if (!this.name || this.name.trim().length === 0) {
+                        this.username = '';
+                        this.feedbackMsg = '';
+                        this.isChecking = false;
+                        return;
+                    }
+                    this.isChecking = true;
+                    this.debounceTimer = setTimeout(() => {
+                        this.generateFromBackend(this.name);
+                    }, 300);
+                }
+            },
+
+            onUsernameInput() {
+                this.username = this.username.toLowerCase().replace(/[^a-z0-9_.]/g, '');
+                clearTimeout(this.debounceTimer);
+                if (this.username.length < 3) {
+                    this.isAvailable = false;
+                    this.feedbackMsg = 'Minimal 3 karakter.';
+                    this.isChecking = false;
+                    return;
+                }
+                this.isChecking = true;
+                this.debounceTimer = setTimeout(() => {
+                    this.checkFromBackend(this.username);
+                }, 300);
+            },
+
+            toggleMode() {
+                this.isManual = !this.isManual;
+                if (!this.isManual) {
+                    if (this.name && this.name.trim().length > 0) {
+                        this.generateFromBackend(this.name);
+                    } else {
+                        this.username = '';
+                        this.feedbackMsg = '';
+                    }
+                } else {
+                    if (this.username) {
+                        this.checkFromBackend(this.username);
+                    }
+                }
+            },
+
+            generateFromBackend(name) {
+                this.isChecking = true;
+                fetch(`{{ route('users.check-username') }}?name=${encodeURIComponent(name)}`)
+                    .then(r => r.json())
+                    .then(d => {
+                        this.username = d.username;
+                        this.isAvailable = d.available;
+                        this.feedbackMsg = d.message;
+                    })
+                    .catch(() => {})
+                    .finally(() => { this.isChecking = false; });
+            },
+
+            checkFromBackend(uname) {
+                this.isChecking = true;
+                fetch(`{{ route('users.check-username') }}?username=${encodeURIComponent(uname)}`)
+                    .then(r => r.json())
+                    .then(d => {
+                        this.isAvailable = d.available;
+                        this.feedbackMsg = d.message;
+                    })
+                    .catch(() => {})
+                    .finally(() => { this.isChecking = false; });
+            }
+        };
+    }
+</script>

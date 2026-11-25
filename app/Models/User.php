@@ -15,6 +15,8 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+        'username',
+        'bio',
         'email',
         'password',
         'role',
@@ -44,16 +46,6 @@ class User extends Authenticatable
         return $this->hasMany(Comment::class);
     }
 
-    public function moderatedCommunities(): BelongsToMany
-    {
-        return $this->belongsToMany(Community::class, 'community_moderators');
-    }
-
-    public function isModeratorOf(int $communityId): bool
-    {
-        return $this->moderatedCommunities()->where('community_id', $communityId)->exists();
-    }
-
     public function votes(): HasMany
     {
         return $this->hasMany(Vote::class);
@@ -62,6 +54,57 @@ class User extends Authenticatable
     public function commentVotes(): HasMany
     {
         return $this->hasMany(CommentVote::class);
+    }
+
+    public function createdCommunities(): HasMany
+    {
+        return $this->hasMany(Community::class, 'created_by');
+    }
+
+    public function joinedCommunities(): BelongsToMany
+    {
+        return $this->belongsToMany(Community::class, 'community_members')
+            ->using(CommunityMember::class)
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    public function savedPosts(): BelongsToMany
+    {
+        return $this->belongsToMany(Post::class, 'saved_posts')
+            ->withTimestamps();
+    }
+
+    public function moderatedCommunities(): BelongsToMany
+    {
+        return $this->joinedCommunities()->wherePivotIn('role', ['admin', 'moderator']);
+    }
+
+    public function isAdminOf(?int $communityId): bool
+    {
+        if ($communityId === null)
+            return false;
+
+        return $this->joinedCommunities()
+            ->where('community_id', $communityId)
+            ->wherePivot('role', 'admin')
+            ->exists();
+    }
+
+    public function isModeratorOf(?int $communityId): bool
+    {
+        if ($communityId === null) {
+            return false;
+        }
+
+        return $this->moderatedCommunities()
+            ->where('community_id', $communityId)
+            ->exists();
+    }
+
+    public function isAuthorizedOf(?int $communityId): bool
+    {
+        return $this->isAdminOf($communityId) || $this->isModeratorOf($communityId);
     }
 
     public function isAdmin(): bool

@@ -24,12 +24,44 @@
     </style>
 </head>
 
+@php
+    $isRegisterAuth = old('_auth_form') === 'register'
+        || $errors->has('name')
+        || $errors->has('username')
+        || $errors->has('password_confirmation')
+        || old('password_confirmation') !== null;
+
+    $isResetAuth = old('_auth_form') === 'reset'
+        || request()->routeIs('password.reset');
+
+    $isForgotAuth = old('_auth_form') === 'forgot'
+        || session('status')
+        || (request()->routeIs('password.*') && !$isResetAuth);
+
+    $isLoginAuth = old('_auth_form') === 'login'
+        || (!$isRegisterAuth && !$isForgotAuth && !$isResetAuth && $errors->any());
+
+    $initialAuthModal = 'null';
+    if (request('auth')) {
+        $initialAuthModal = "'" . e(request('auth')) . "'";
+    } elseif ($isResetAuth) {
+        $initialAuthModal = "'reset'";
+    } elseif ($isRegisterAuth) {
+        $initialAuthModal = "'register'";
+    } elseif ($isForgotAuth) {
+        $initialAuthModal = "'forgot'";
+    } elseif ($isLoginAuth) {
+        $initialAuthModal = "'login'";
+    }
+@endphp
+
 <body x-data="{
         createPostOpen: false,
         createCommunityOpen: false,
-        authModal: {{ request('auth') ? "'" . e(request('auth')) . "'" : ($errors->has('name') ? "'register'" : (session('status') || request()->routeIs('password.*') ? "'forgot'" : ($errors->any() ? "'login'" : 'null'))) }}
+        selectedCommunityId: '{{ old('community_id', isset($community) ? $community->id : '') }}',
+        authModal: {!! $initialAuthModal !!}
     }"
-    @open-create-post.window="createPostOpen = true"
+    @open-create-post.window="createPostOpen = true; if ($event.detail && typeof $event.detail.communityId !== 'undefined') { selectedCommunityId = String($event.detail.communityId); } else if ('{{ isset($community) ? $community->id : '' }}') { selectedCommunityId = '{{ isset($community) ? $community->id : '' }}'; }"
     @open-create-community.window="createCommunityOpen = true"
     @open-login.window="authModal = 'login'"
     @open-register.window="authModal = 'register'"
@@ -64,8 +96,12 @@
                             <div class="absolute -left-3 w-1.5 h-6 bg-blue-600 rounded-r-full"></div>
                         @endif
                         <a href="{{ route('communities.show', $comm->name) }}" title="c/{{ $comm->name }}"
-                            class="w-10 h-10 rounded-2xl {{ $colorClass }} flex items-center justify-center font-bold text-xs shadow-2xs hover:scale-105 transition-all {{ $isCurrent ? 'ring-2 ring-blue-500' : '' }}">
-                            {{ $code }}
+                            class="w-10 h-10 rounded-2xl {{ $colorClass }} flex items-center justify-center font-bold text-xs shadow-2xs hover:scale-105 transition-all overflow-hidden {{ $isCurrent ? 'ring-2 ring-blue-500' : '' }}">
+                            @if($comm->avatar_path)
+                                <img src="{{ $comm->avatar_url }}" alt="{{ $comm->name }}" class="w-full h-full object-cover">
+                            @else
+                                {{ $code }}
+                            @endif
                         </a>
                     </div>
                 @endforeach

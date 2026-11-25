@@ -18,8 +18,19 @@ class Community extends Model
         'name',
         'description',
         'banner_path',
+        'avatar_path',
         'created_by',
+        'rules',
+        'about',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'rules' => 'array',
+            'about' => 'array',
+        ];
+    }
 
     public function creator(): BelongsTo
     {
@@ -33,29 +44,143 @@ class Community extends Model
 
     public function moderators(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'community_moderators')
-            ->using(CommunityModerator::class)
+        return $this->members()->wherePivotIn('role', ['admin', 'moderator']);
+    }
+
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'community_members')
+            ->using(CommunityMember::class)
+            ->withPivot('role')
             ->withTimestamps();
     }
 
     public function isModerator(?User $user): bool
     {
+        if (!$user)
+            return false;
+        return $this->members()
+            ->where('users.id', $user->id)
+            ->wherePivotIn('role', ['admin', 'moderator'])
+            ->exists();
+    }
+
+    public function isMember(?User $user): bool
+    {
         if (!$user) {
             return false;
         }
 
-        return $this->moderators()->where('users.id', $user->id)->exists();
+        return $this->members()->where('users.id', $user->id)->exists();
     }
 
     public function getBannerUrlAttribute(): ?string
     {
         if ($this->banner_path) {
-            /** @var FilesystemAdapter $disk */
-            $disk = Storage::disk('public');
-
-            return $disk->url($this->banner_path);
+            return Storage::disk('s3')->url($this->banner_path);
         }
 
         return null;
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if ($this->avatar_path) {
+            return Storage::disk('s3')->url($this->avatar_path);
+        }
+
+        return null;
+    }
+
+    public function addRule(array $data): array
+    {
+        $rules = $this->rules ?? [];
+        $newRule = [
+            'id' => (string) (time() . rand(100, 999)),
+            'title' => trim($data['title']),
+            'description' => !empty($data['description']) ? trim($data['description']) : null,
+        ];
+        $rules[] = $newRule;
+        $this->update(['rules' => $rules]);
+
+        return $newRule;
+    }
+
+    // Tambahkan di dalam class Community (App\Models\Community.php):
+    public function updateRule(string $ruleId, array $data): bool
+    {
+        $rules = $this->rules ?? [];
+        $updated = false;
+
+        foreach ($rules as &$rule) {
+            if (isset($rule['id']) && (string) $rule['id'] === (string) $ruleId) {
+                $rule['title'] = trim($data['title']);
+                $rule['description'] = !empty($data['description']) ? trim($data['description']) : null;
+                $updated = true;
+                break;
+            }
+        }
+        unset($rule);
+
+        // Fallback jika id adalah index numerik array
+        if (!$updated && isset($rules[$ruleId])) {
+            $rules[$ruleId]['title'] = trim($data['title']);
+            $rules[$ruleId]['description'] = !empty($data['description']) ? trim($data['description']) : null;
+            $updated = true;
+        }
+
+        if ($updated) {
+            $this->rules = array_values($rules);
+            return $this->save();
+        }
+
+        return false;
+    }
+
+    public function deleteRule(string $ruleId): bool
+    {
+        $rules = $this->rules ?? [];
+        $newRules = [];
+
+        foreach ($rules as $idx => $rule) {
+            $matched = false;
+            if (isset($rule['id']) && (string) $rule['id'] === (string) $ruleId) {
+                $matched = true;
+            } elseif ((string) $idx === (string) $ruleId) {
+                $matched = true;
+            }
+            if (!$matched) {
+                $newRules[] = $rule;
+            }
+        }
+
+        $this->rules = array_values($newRules);
+        return $this->save();
+    }
+
+    public function resetDefaultRules(): array
+    {
+        $defaultRules = [
+            [
+                'id' => (string) (time() . '1'),
+                'title' => 'Tetap sesuai topik',
+                'description' => 'Diskusi harus berkaitan dengan topik dan ekosistem terkait.',
+            ],
+            [
+                'id' => (string) (time() . '2'),
+                'title' => 'Hormati sesama anggota',
+                'description' => 'Gunakan bahasa yang santun, dilarang menyerang pribadi atau melecehkan.',
+            ],
+            [
+                'id' => (string) (time() . '3'),
+                'title' => 'Dilarang spam & iklan',
+                'description' => 'Dilarang mempromosikan produk/jasa komersial tanpa izin moderator.',
+            ],
+        ];
+
+        $this->rules = $defaultRules;
+        $this->save();
+
+        return $defaultRules;
     }
 }

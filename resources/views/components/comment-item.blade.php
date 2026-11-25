@@ -14,15 +14,23 @@
             </p>
         @else
             <div class="flex items-center gap-2 flex-wrap mb-1">
-                <span class="text-xs font-bold text-slate-700">
-                    {{ $comment->user->name }}
-                </span>
 
-                @if($comment->user->isAdmin())
+                @if($comment->user && $comment->user->username)
+                    <a href="{{ route('profile.show', ['user' => $comment->user->username]) }}"
+                       class="text-xs font-bold text-slate-700 hover:text-blue-600 hover:underline">
+                        {{ $comment->user->name }}
+                    </a>
+                @else
+                    <span class="text-xs font-bold text-slate-700">
+                        {{ $comment->user->name ?? 'Pengguna' }}
+                    </span>
+                @endif
+
+                @if($comment->user && $comment->user->isAdmin())
                     <span class="text-[9px] font-bold text-amber-700 bg-amber-50 px-1 py-0.5 rounded">
                         Admin
                     </span>
-                @elseif($comment->user->isModeratorOf($comment->post->community_id))
+                    @elseif($comment->user && $comment->post->community_id !== null && $comment->user->isModeratorOf($comment->post->community_id))
                     <span class="text-[9px] font-bold text-purple-700 bg-purple-50 px-1 py-0.5 rounded">
                         Moderator
                     </span>
@@ -118,35 +126,35 @@
     </div>
 
     <div data-replies-container>
-     @if($comment->replies->isNotEmpty())
-          <div class="mt-2"
-               x-data="{ open: true }"
-               data-replies-group>
+        @if($comment->replies->isNotEmpty())
+            <div class="mt-2"
+                 x-data="{ open: true }"
+                 data-replies-group>
 
-               <button type="button"
-                         class="text-[11px] text-slate-500 font-semibold cursor-pointer flex items-center gap-1"
-                         @click="open = !open"
-                         :aria-expanded="open">
+                <button type="button"
+                        class="text-[11px] text-slate-500 font-semibold cursor-pointer flex items-center gap-1"
+                        @click="open = !open"
+                        :aria-expanded="open">
 
                     <span x-text="open ? '▼' : '▶'"></span>
 
                     <span data-replies-count>
-                         {{ $comment->replies->count() }} Balasan
+                        {{ $comment->replies->count() }} Balasan
                     </span>
-               </button>
+                </button>
 
-               <div class="mt-2"
-                    data-replies-list
-                    x-show="open">
+                <div class="mt-2"
+                     data-replies-list
+                     x-show="open">
 
                     @include('components.comment-tree', [
-                         'comments' => $comment->replies,
-                         'depth' => $depth + 1
+                        'comments' => $comment->replies,
+                        'depth' => $depth + 1
                     ])
 
-               </div>
-          </div>
-     @endif
-     </div>
+                </div>
+            </div>
+        @endif
+    </div>
 
 </div>

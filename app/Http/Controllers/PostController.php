@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StorePostRequest;
 use App\Http\Requests\UpdatePostRequest;
 use App\Models\Post;
+use App\Services\ImageService;
 use App\Support\PostFeed;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -53,7 +54,7 @@ class PostController extends Controller
         unset($data['image']);
 
         if ($request->hasFile('image')) {
-            $data['image_path'] = $request->file('image')->store('post-images', 'public');
+            $data['image_path'] = ImageService::compressAndStore($request->file('image'), 'post-images', maxWidth: 1200);
         }
 
         $post = $request->user()->posts()->create($data);
@@ -78,14 +79,10 @@ class PostController extends Controller
         unset($data['image'], $data['remove_image']);
 
         if ($request->hasFile('image')) {
-            if ($post->image_path) {
-                Storage::disk('public')->delete($post->image_path);
-            }
-            $data['image_path'] = $request->file('image')->store('post-images', 'public');
+            ImageService::delete($post->image_path);
+            $data['image_path'] = ImageService::compressAndStore($request->file('image'), 'post-images', maxWidth: 1200);
         } elseif ($request->boolean('remove_image')) {
-            if ($post->image_path) {
-                Storage::disk('public')->delete($post->image_path);
-            }
+            ImageService::delete($post->image_path);
             $data['image_path'] = null;
         }
 
@@ -100,9 +97,7 @@ class PostController extends Controller
     {
         Gate::authorize('delete', $post);
 
-        if ($post->image_path) {
-            Storage::disk('public')->delete($post->image_path);
-        }
+        ImageService::delete($post->image_path);
 
         $post->delete();
 
