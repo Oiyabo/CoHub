@@ -52,6 +52,13 @@ class Comment extends Model
 
     public function getScoreAttribute(): int
     {
+        if ($this->relationLoaded('votes')) {
+            $up = $this->votes->where('vote_type', 'upvote')->count();
+            $down = $this->votes->where('vote_type', 'downvote')->count();
+
+            return $up - $down;
+        }
+
         $up = $this->votes()->where('vote_type', 'upvote')->count();
         $down = $this->votes()->where('vote_type', 'downvote')->count();
 

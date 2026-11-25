@@ -9,7 +9,6 @@ use Illuminate\View\View;
 
 class SavedPostController extends Controller
 {
-    // Menampilkan daftar postingan yang disimpan pengguna
     public function index(Request $request): View
     {
         $posts = $request->user()
@@ -22,7 +21,6 @@ class SavedPostController extends Controller
         return view('saved.index', compact('posts'));
     }
 
-    // Menyimpan postingan
     public function store(Request $request, Post $post): RedirectResponse
     {
         $request->user()
@@ -32,7 +30,6 @@ class SavedPostController extends Controller
         return back()->with('success', 'Postingan berhasil disimpan.');
     }
 
-    // Menghapus postingan dari daftar simpanan
     public function destroy(Request $request, Post $post): RedirectResponse
     {
         $request->user()

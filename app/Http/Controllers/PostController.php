@@ -13,9 +13,6 @@ use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
 {
-    /**
-     * Potongan HTML daftar kartu post (dipanggil AJAX oleh tab feed).
-     */
     public function feed(Request $request)
     {
         $posts = PostFeed::get($request->query('tab'));
@@ -23,9 +20,6 @@ class PostController extends Controller
         return view('posts.partials.feed-list', compact('posts'));
     }
 
-    /**
-     * Urutan ID postingan (JSON) untuk tab feed di halaman yang kartunya sudah dirender.
-     */
     public function order(Request $request)
     {
         return response()->json([
@@ -38,14 +32,14 @@ class PostController extends Controller
         if ($post->community && $post->community->is_private) {
             Gate::authorize('view', $post->community);
         }
-        $post->load(['user.moderatedCommunities', 'community', 'comments.user'])
+
+        $post->load(['user.moderatedCommunities', 'community', 'votes', 'comments.user', 'comments.votes'])
             ->loadCount([
                 'comments',
                 'votes as upvotes_count' => fn($q) => $q->where('vote_type', 'upvote'),
                 'votes as downvotes_count' => fn($q) => $q->where('vote_type', 'downvote'),
             ]);
 
-        // Susun komentar bertingkat (dipakai komponen comment-tree milik Iqlima)
         $post->buildCommentTree();
 
         return view('posts.show', compact('post'));
@@ -61,7 +55,6 @@ class PostController extends Controller
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ]);
 
-        // Validasi keanggotaan komunitas jika draft ditujukan ke komunitas
         if (!empty($data['community_id'])) {
             $isMember = $request->user()
                 ->joinedCommunities()
@@ -135,7 +128,6 @@ class PostController extends Controller
     {
         $data = $request->validated();
 
-        // Jika tombol Publikasikan ditekan
         if ($request->input('action') === 'publish') {
             abort_unless(
                 $post->status === 'draft'

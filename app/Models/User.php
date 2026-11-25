@@ -11,7 +11,6 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     protected $fillable = [
@@ -21,6 +20,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_blocked',
     ];
 
     protected $hidden = [
@@ -32,41 +32,35 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
         ];
     }
 
-    // Postingan yang dibuat pengguna
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class);
     }
 
-    // Komentar dan balasan yang dibuat pengguna
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class);
     }
 
-    // Vote pada postingan
     public function votes(): HasMany
     {
         return $this->hasMany(Vote::class);
     }
 
-    // Vote pada komentar
     public function commentVotes(): HasMany
     {
         return $this->hasMany(CommentVote::class);
     }
 
-    // Komunitas yang dibuat pengguna
     public function createdCommunities(): HasMany
     {
         return $this->hasMany(Community::class, 'created_by');
     }
 
-    // Komunitas yang diikuti pengguna (anggota)
     public function joinedCommunities(): BelongsToMany
     {
         return $this->belongsToMany(Community::class, 'community_members')
@@ -75,14 +69,12 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
-    // Postingan yang disimpan pengguna
     public function savedPosts(): BelongsToMany
     {
         return $this->belongsToMany(Post::class, 'saved_posts')
             ->withTimestamps();
     }
 
-    // Komunitas tempat pengguna menjadi moderator
     public function moderatedCommunities(): BelongsToMany
     {
         return $this->joinedCommunities()->wherePivotIn('role', ['admin', 'moderator']);
@@ -98,6 +90,7 @@ class User extends Authenticatable
             ->wherePivot('role', 'admin')
             ->exists();
     }
+
     public function isModeratorOf(?int $communityId): bool
     {
         if ($communityId === null) {
@@ -108,6 +101,7 @@ class User extends Authenticatable
             ->where('community_id', $communityId)
             ->exists();
     }
+
     public function isAuthorizedOf(?int $communityId): bool
     {
         return $this->isAdminOf($communityId) || $this->isModeratorOf($communityId);
@@ -116,5 +110,10 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function isBlocked(): bool
+    {
+        return (bool) $this->is_blocked;
     }
 }

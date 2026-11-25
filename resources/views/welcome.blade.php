@@ -1,8 +1,6 @@
 <x-app-layout>
-    <!-- GUEST / PUBLIC FEED -->
     <div class="space-y-4">
 
-        <!-- Header Banner Sederhana -->
         <div class="bg-blue-600 rounded-2xl p-6 text-white shadow-xs">
             <h1 class="text-xl sm:text-2xl font-bold tracking-tight">
                 CoHub (Community Hub)
@@ -13,12 +11,10 @@
             </p>
         </div>
 
-        <!-- DAFTAR POSTINGAN -->
         @forelse($posts as $post)
             <article class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs"
                      data-post-id="{{ $post->id }}">
 
-                <!-- Author Header -->
                 <div class="flex items-center justify-between gap-3 mb-2.5">
                     <div class="flex items-center gap-2 flex-wrap">
                         @php
@@ -63,7 +59,6 @@
                     @endif
                 </div>
 
-                <!-- Judul & Konten Postingan -->
                 <h2 class="text-base font-bold text-slate-900 mb-1.5">
                     <a href="{{ route('posts.show', $post) }}" class="hover:text-blue-600 transition-colors">
                         {{ $post->title }}
@@ -76,14 +71,18 @@
 
                 <x-post-image :post="$post" />
 
-                <!-- Actions: Skor Vote & Jumlah Komentar -->
                 <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
                     <div class="flex items-center gap-3">
-                        <div class="flex items-center bg-slate-100 text-slate-700 rounded-lg px-2.5 py-1 font-bold">
-                            <span class="text-blue-600">▲</span>
-                            <span class="mx-1.5 font-mono">{{ $post->score }}</span>
-                            <span class="text-slate-400">▼</span>
-                        </div>
+                        @php
+                            $userVoteOnPost = auth()->check()
+                                ? $post->votes->where('user_id', auth()->id())->first()?->vote_type
+                                : null;
+                        @endphp
+                        <x-vote-button
+                            :post-id="$post->id"
+                            :score="$post->score"
+                            :user-vote="$userVoteOnPost"
+                        />
 
                         <a href="{{ route('posts.show', $post) }}" class="text-slate-500 hover:text-blue-600 font-medium">
                             <span data-comment-count
@@ -94,7 +93,6 @@
                     </div>
                 </div>
 
-                <!-- DAFTAR KOMENTAR BERTINGKAT -->
                 <div class="mt-3 pt-3 border-t border-slate-100">
                     <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
                         Komentar:

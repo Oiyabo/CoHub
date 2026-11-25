@@ -1,13 +1,9 @@
-
-<!-- TOP NAVBAR COHUB -->
 <nav class="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
     <div class="w-full max-w-[1300px] mx-auto px-3 sm:px-5 lg:px-6">
         <div class="flex items-center justify-between h-16 gap-2">
 
-            <!-- 1. BRAND DAN NAVIGASI -->
             <div class="flex items-center gap-3 lg:gap-6 min-w-0">
 
-                <!-- LOGO COHUB -->
                 <a href="{{ url('/') }}" class="flex items-center gap-2.5 shrink-0">
                     <div class="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-sm shadow-xs">
                         Co
@@ -18,10 +14,8 @@
                     </span>
                 </a>
 
-                <!-- NAV LINKS -->
                 <div class="flex items-center gap-1 text-xs font-semibold text-slate-600 whitespace-nowrap">
 
-                    <!-- BERANDA -->
                     <a href="{{ Auth::check() ? route('dashboard') : url('/') }}"
                         title="Beranda"
                         class="flex items-center gap-1.5 px-2 sm:px-2.5 lg:px-3 py-2 rounded-xl transition-colors
@@ -40,7 +34,6 @@
                         <span class="hidden lg:inline">Beranda</span>
                     </a>
 
-                    <!-- JELAJAHI -->
                     <a href="{{ route('communities.index') }}"
                         title="Jelajahi"
                         class="flex items-center gap-1.5 px-2 sm:px-2.5 lg:px-3 py-2 rounded-xl transition-colors
@@ -61,10 +54,10 @@
                     </a>
 
                     @auth
-                    @php
-                        $unreadNotificationCount = Auth::user()->unreadNotifications()->count();
-                    @endphp
-                                            <!-- TERSIMPAN -->
+                        @php
+                            $unreadNotificationCount = Auth::user()->unreadNotifications()->count();
+                        @endphp
+
                         <a href="{{ route('saved.index') }}"
                             title="Tersimpan"
                             class="flex items-center gap-1.5 px-2 sm:px-2.5 lg:px-3 py-2 rounded-xl transition-colors
@@ -83,7 +76,6 @@
                             <span class="hidden lg:inline">Tersimpan</span>
                         </a>
 
-                        <!-- NOTIFIKASI -->
                         <a href="{{ route('notifications.index') }}"
                             title="Notifikasi"
                             class="relative flex items-center gap-1.5 px-2 sm:px-2.5 lg:px-3 py-2 rounded-xl transition-colors
@@ -109,29 +101,44 @@
                                 </span>
                             @endif
                         </a>
-                        <!-- MODE ADMIN -->
+
                         @if(Auth::user()->isAdmin())
-                            <span class="hidden lg:inline-flex px-2.5 py-1 text-[11px] font-bold rounded-lg bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
-                                Mode Admin
-                            </span>
+                            <a href="{{ route('admin.dashboard') }}"
+                                title="Admin Panel"
+                                class="flex items-center gap-1.5 px-2 sm:px-2.5 lg:px-3 py-2 rounded-xl transition-colors
+                                {{ request()->routeIs('admin.*')
+                                    ? 'text-amber-700 bg-amber-50 font-bold'
+                                    : 'text-amber-600 hover:text-amber-700 hover:bg-amber-50' }}">
+
+                                <svg class="w-4 h-4 shrink-0"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                                    </path>
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z">
+                                    </path>
+                                </svg>
+
+                                <span class="hidden lg:inline">Admin</span>
+                            </a>
                         @endif
                     @endauth
 
                 </div>
             </div>
 
-            <!-- 2. AKSI KANAN -->
             <div class="ml-auto flex items-center justify-end gap-2 sm:gap-3 shrink-0">
 
                 @auth
 
-                    <!-- BUAT POST -->
                     <button type="button"
                         @click="$dispatch('open-create-post')"
                         title="Buat Post"
                         class="inline-flex items-center justify-center gap-1.5 px-2.5 lg:px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer whitespace-nowrap">
 
-                        <!-- IKON PLUS SAAT SPLIT -->
                         <svg class="w-4 h-4 lg:hidden"
                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -140,11 +147,9 @@
                             </path>
                         </svg>
 
-                        <!-- TULISAN SAAT LAYAR PENUH -->
                         <span class="hidden lg:inline">+ Buat Post</span>
                     </button>
 
-                    <!-- PROFIL USER -->
                     <div x-data="{ open: false }" class="relative shrink-0">
 
                         <button type="button"
@@ -159,7 +164,6 @@
                                 $isAdmin = Auth::user()->isAdmin();
                             @endphp
 
-                            <!-- AVATAR -->
                             <div class="w-8 h-8 rounded-xl
                                 {{ $isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700' }}
                                 flex items-center justify-center font-bold text-xs shrink-0">
@@ -167,7 +171,6 @@
                                 {{ $initials }}
                             </div>
 
-                            <!-- NAMA DAN ROLE -->
                             <div class="hidden lg:flex flex-col text-left leading-tight">
                                 <span class="text-xs font-bold text-slate-800">
                                     {{ Str::words(Auth::user()->name, 1, '') }}
@@ -178,7 +181,6 @@
                                 </span>
                             </div>
 
-                            <!-- PANAH DROPDOWN -->
                             <svg class="hidden lg:block w-3.5 h-3.5 text-slate-400"
                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -189,7 +191,6 @@
 
                         </button>
 
-                        <!-- DROPDOWN PROFIL -->
                         <div x-show="open"
                             x-transition.opacity
                             @click.outside="open = false"
@@ -206,7 +207,6 @@
                                 </p>
                             </div>
 
-                            <!-- LIHAT PROFIL -->
                             @if(Auth::user()->username)
                                 <a href="{{ route('profile.show', ['user' => Auth::user()->username]) }}"
                                     class="block px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors">
@@ -214,7 +214,6 @@
                                 </a>
                             @endif
 
-                            <!-- TERSIMPAN -->
                             <a href="{{ route('saved.index') }}"
                                 class="flex items-center gap-2 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors">
 
@@ -229,15 +228,10 @@
                                 Tersimpan
                             </a>
 
-                            <!-- DRAFT -->
                             <a href="{{ route('posts.drafts') }}"
-                                title="Draft"
-                                class="flex items-center gap-1.5 px-2 sm:px-2.5 lg:px-3 py-2 rounded-xl transition-colors
-                                {{ request()->routeIs('posts.drafts')
-                                    ? 'text-blue-600 bg-blue-50 font-bold'
-                                    : 'hover:text-slate-900 hover:bg-slate-50' }}">
+                                class="flex items-center gap-2 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors">
 
-                                <svg class="w-4 h-4 shrink-0"
+                                <svg class="w-4 h-4"
                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         stroke-width="2"
@@ -245,17 +239,34 @@
                                     </path>
                                 </svg>
 
-                                <span class="hidden lg:inline">Draft</span>
+                                Draft
                             </a>
 
+                            @if(Auth::user()->isAdmin())
+                                <a href="{{ route('admin.dashboard') }}"
+                                    class="flex items-center gap-2 px-4 py-2.5 text-amber-700 hover:bg-amber-50 transition-colors font-semibold">
 
-                            <!-- PENGATURAN AKUN -->
+                                    <svg class="w-4 h-4"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                                        </path>
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z">
+                                        </path>
+                                    </svg>
+
+                                    Admin Panel
+                                </a>
+                            @endif
+
                             <a href="{{ route('profile.edit') }}"
                                 class="block px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors">
                                 Pengaturan Akun
                             </a>
 
-                            <!-- LOGOUT -->
                             <div class="border-t border-slate-100 mt-1 pt-1">
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
@@ -272,7 +283,6 @@
 
                 @else
 
-                    <!-- GUEST -->
                     <div class="flex items-center gap-2">
                         <button type="button"
                             @click="authModal = 'login'"
