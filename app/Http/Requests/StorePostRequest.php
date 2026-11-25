@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Community;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePostRequest extends FormRequest
@@ -11,19 +12,21 @@ class StorePostRequest extends FormRequest
         return $this->user() !== null;
     }
 
-    /**
-     * @return array<string, array<int, mixed>>
-     */
     public function rules(): array
     {
         return [
-            // Boleh kosong (postingan umum). Kalau diisi, user harus sudah menjadi anggota
-            // komunitas itu (tercatat di tabel community_members lewat tombol "Gabung").
             'community_id' => [
                 'nullable',
                 'integer',
                 'exists:communities,id',
                 function (string $attribute, mixed $value, \Closure $fail) {
+                    $community = Community::find($value);
+
+                    if ($community && $community->isClosed()) {
+                        $fail('Komunitas ini telah ditutup oleh Administrator sehingga tidak menerima postingan baru.');
+                        return;
+                    }
+
                     $isMember = $this->user()
                         ->joinedCommunities()
                         ->where('communities.id', $value)
@@ -40,9 +43,6 @@ class StorePostRequest extends FormRequest
         ];
     }
 
-    /**
-     * @return array<string, string>
-     */
     public function attributes(): array
     {
         return [

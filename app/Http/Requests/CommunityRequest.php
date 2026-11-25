@@ -16,21 +16,31 @@ class CommunityRequest extends FormRequest
     {
         // Ambil ID komunitas saat ini jika dalam konteks update (edit)
         $communityId = $this->route('community') ? $this->route('community')->id : null;
-
         return [
             'name' => [
                 'required',
                 'string',
                 'min:3',
                 'max:50',
-                'regex:/^[a-zA-Z0-9_-]+$/',
+                'regex:/^[a-zA-Z0-9\_-]+$/',
                 Rule::unique('communities', 'name')->ignore($communityId),
             ],
             'description' => ['nullable', 'string', 'max:1000'],
+            'category' => [
+                'required',
+                Rule::in([
+                    'Teknologi',
+                    'Akademik',
+                    'Kampus',
+                    'Data',
+                    'Karier',
+                ]),
+            ],
             'banner' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'is_private' => ['nullable', 'boolean'],
         ];
+
     }
 
     public function messages(): array
@@ -46,6 +56,8 @@ class CommunityRequest extends FormRequest
             'banner.max' => 'Ukuran gambar banner maksimal 2 MB.',
             'avatar.image' => 'File avatar harus berupa gambar.',
             'avatar.max' => 'Ukuran gambar avatar maksimal 2 MB.',
+            'category.required' => 'Kategori komunitas wajib dipilih.',
+            'category.in' => 'Kategori komunitas tidak valid.',
             'is_private.boolean' => 'Status privat harus berupa boolean.',
         ];
     }

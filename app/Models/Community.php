@@ -17,12 +17,14 @@ class Community extends Model
     protected $fillable = [
         'name',
         'description',
+        'category',
         'is_private',
         'banner_path',
         'avatar_path',
         'created_by',
         'rules',
         'about',
+        'is_closed',
     ];
 
     protected function casts(): array
@@ -31,7 +33,13 @@ class Community extends Model
             'rules' => 'array',
             'about' => 'array',
             'is_private' => 'boolean',
+            'is_closed' => 'boolean',
         ];
+    }
+
+    public function isClosed(): bool
+    {
+        return (bool) $this->is_closed;
     }
 
     public function creator(): BelongsTo
@@ -78,20 +86,28 @@ class Community extends Model
 
     public function getBannerUrlAttribute(): ?string
     {
-        if ($this->banner_path) {
+        if (! $this->banner_path) {
+            return null;
+        }
+
+        if (filled(config('filesystems.disks.s3.bucket'))) {
             return Storage::disk('s3')->url($this->banner_path);
         }
 
-        return null;
+        return Storage::disk('public')->url($this->banner_path);
     }
 
     public function getAvatarUrlAttribute(): ?string
     {
-        if ($this->avatar_path) {
+        if (! $this->avatar_path) {
+            return null;
+        }
+
+        if (filled(config('filesystems.disks.s3.bucket'))) {
             return Storage::disk('s3')->url($this->avatar_path);
         }
 
-        return null;
+        return Storage::disk('public')->url($this->avatar_path);
     }
 
     public function addRule(array $data): array
@@ -108,7 +124,6 @@ class Community extends Model
         return $newRule;
     }
 
-    // Tambahkan di dalam class Community (App\Models\Community.php):
     public function updateRule(string $ruleId, array $data): bool
     {
         $rules = $this->rules ?? [];
@@ -124,7 +139,6 @@ class Community extends Model
         }
         unset($rule);
 
-        // Fallback jika id adalah index numerik array
         if (!$updated && isset($rules[$ruleId])) {
             $rules[$ruleId]['title'] = trim($data['title']);
             $rules[$ruleId]['description'] = !empty($data['description']) ? trim($data['description']) : null;

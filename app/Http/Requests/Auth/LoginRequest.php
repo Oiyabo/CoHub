@@ -4,7 +4,6 @@ namespace App\Http\Requests\Auth;
 
 use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -13,19 +12,11 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
@@ -74,7 +65,7 @@ class LoginRequest extends FormRequest
             }
         }
 
-        if (! $authenticated) {
+        if (!$authenticated) {
             RateLimiter::hit($this->throttleKey());
 
             $errorKey = $this->has('login') ? 'login' : 'email';
@@ -84,17 +75,21 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        if (Auth::user()->isBlocked()) {
+            Auth::logout();
+            RateLimiter::clear($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Akun Anda telah diblokir oleh Administrator.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 
-    /**
-     * Ensure the login request is not rate limited.
-     *
-     * @throws ValidationException
-     */
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        if (!RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
             return;
         }
 
@@ -111,13 +106,10 @@ class LoginRequest extends FormRequest
         ]);
     }
 
-    /**
-     * Get the rate limiting throttle key for the request.
-     */
     public function throttleKey(): string
     {
         $login = trim((string) ($this->input('login') ?? $this->input('email')));
 
-        return Str::transliterate(Str::lower($login).'|'.$this->ip());
+        return Str::transliterate(Str::lower($login) . '|' . $this->ip());
     }
 }

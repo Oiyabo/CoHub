@@ -37,6 +37,7 @@ class CommunityTest extends TestCase
         $this->actingAs($user)->post(route('communities.store'), [
             'name' => 'komunitas-publik',
             'description' => 'Komunitas publik',
+            'category' => 'Kampus',
             'is_private' => 0,
         ])->assertRedirect(route('communities.show', 'komunitas-publik'));
 
@@ -48,6 +49,7 @@ class CommunityTest extends TestCase
         $this->actingAs($user)->post(route('communities.store'), [
             'name' => 'komunitas-privat',
             'description' => 'Komunitas privat',
+            'category' => 'Kampus',
             'is_private' => 1,
         ])->assertRedirect(route('communities.show', 'komunitas-privat'));
 
@@ -156,6 +158,7 @@ class CommunityTest extends TestCase
         $this->actingAs($creator)->put(route('communities.update', $comm->name), [
             'name' => 'comm-update-privacy',
             'description' => 'Updated desc',
+            'category' => 'Kampus',
             'is_private' => 1,
         ])->assertRedirect(route('communities.show', $comm->name));
 

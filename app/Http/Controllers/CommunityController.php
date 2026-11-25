@@ -20,22 +20,40 @@ use Illuminate\View\View;
 
 class CommunityController extends Controller
 {
-    public function index(Request $request): View
-    {
-        $search = $request->query('search');
-        $communities = Community::with('creator')
-            ->withCount(['posts', 'moderators'])
-            ->when($search, function ($query, $search) {
-                return $query->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('description', 'ilike', "%{$search}%");
-            })
-            ->latest()
-            ->paginate(9)
-            ->withQueryString();
+   public function index(Request $request): View
+{
+    $search = $request->query('search');
+    $category = $request->query('category');
 
-        return view('communities.index', compact('communities', 'search'));
+    $allowedCategories = [
+        'Teknologi',
+        'Akademik',
+        'Kampus',
+        'Data',
+        'Karier',
+    ];
+
+    if (!in_array($category, $allowedCategories, true)) {
+        $category = null;
     }
 
+    $communities = Community::with('creator')
+        ->withCount(['posts', 'moderators'])
+        ->when($category, function ($query, $category) {
+            $query->where('category', $category);
+        })
+        ->when($search, function ($query, $search) {
+            $query->where(function ($subQuery) use ($search) {
+                $subQuery->where('name', 'ilike', "%{$search}%")
+                    ->orWhere('description', 'ilike', "%{$search}%");
+            });
+        })
+        ->latest()
+        ->paginate(9)
+        ->withQueryString();
+
+    return view('communities.index', compact('communities', 'search', 'category'));
+}
     public function create(): View
     {
         return view('communities.create');
@@ -55,6 +73,7 @@ class CommunityController extends Controller
         $community = Community::create([
             'name' => strtolower($validated['name']),
             'description' => $validated['description'] ?? null,
+            'category' => $validated['category'] ?? null,
             'is_private' => $request->boolean('is_private'),
             'banner_path' => $bannerPath,
             'avatar_path' => $avatarPath,
@@ -75,11 +94,10 @@ class CommunityController extends Controller
         $canViewContent = !$community->is_private || ($user && ($user->isAdmin() || $isMember));
 
         $posts = $canViewContent
-            ? $community->posts()->with(['user', 'comments.user', 'votes'])->latest()->paginate(10)
+            ? $community->posts()->where('status', 'published')->with(['user', 'comments.user', 'comments.votes', 'votes'])->latest()->paginate(10)
             : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 
         $moderators = $community->moderators()->get();
-        // $isMember = $community->isMember(Auth::user());
         $members = $community->members()->withPivot('role')->latest('community_members.created_at')->get();
 
         $rules = $community->rules ?? [];
@@ -91,7 +109,6 @@ class CommunityController extends Controller
             'isMember',
             'canViewContent',
             'moderators',
-            // 'isMember',
             'members',
             'rules',
             'about'
@@ -124,6 +141,7 @@ class CommunityController extends Controller
         }
         $community->name = strtolower($validated['name']);
         $community->description = $validated['description'] ?? null;
+        $community->category = $validated['category'] ?? null;
         $community->is_private = $request->boolean('is_private');
         $community->save();
 
@@ -142,8 +160,6 @@ class CommunityController extends Controller
         return redirect()->route('communities.index')
             ->with('success', "Komunitas c/{$name} berhasil dihapus oleh Administrator.");
     }
-
-    // AJAX
 
     public function checkName(Request $request): JsonResponse
     {
@@ -230,6 +246,10 @@ class CommunityController extends Controller
 
     public function join(Community $community): RedirectResponse
     {
+        if ($community->isClosed()) {
+            return back()->with('error', "Komunitas c/{$community->name} sedang ditutup oleh Administrator.");
+        }
+
         if ($community->is_private && !Auth::user()->isAdmin() && $community->created_by !== Auth::id()) {
             return back()->with('error', 'Komunitas ini bersifat privat. Akses masuk hanya melalui undangan atau persetujuan pengelola.');
         }
@@ -256,7 +276,6 @@ class CommunityController extends Controller
     {
         Gate::authorize('manageRules', $community);
 
-        // Langsung simpan $validated ke kolom about:
         $community->update(['about' => $request->validated()]);
 
         return redirect()->route('communities.edit', ['community' => $community->name, 'tab' => 'tentang'])

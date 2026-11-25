@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SavedPostController;
+use App\Http\Controllers\VoteController;
 use App\Models\Post;
 use App\Support\PostFeed;
 use Illuminate\Support\Facades\Route;
@@ -29,7 +31,6 @@ Route::get('/dashboard', function () {
     return view('dashboard', compact('posts'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// Public User Profile
 Route::get('/@{user:username}', [ProfileController::class, 'show'])
     ->name('profile.show');
 
@@ -54,7 +55,7 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])
         ->name('comments.destroy');
-    // Saved Posts
+
     Route::get('/saved', [SavedPostController::class, 'index'])
         ->name('saved.index');
 
@@ -65,7 +66,21 @@ Route::middleware('auth')->group(function () {
         ->name('saved.destroy');
 });
 
-// Community Management
+Route::middleware('auth')->prefix('api')->group(function () {
+    Route::post('/posts/{post}/vote', [VoteController::class, 'votePost'])->name('api.posts.vote');
+    Route::post('/comments/{comment}/vote', [VoteController::class, 'voteComment'])->name('api.comments.vote');
+});
+
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/users', [AdminController::class, 'manageUsers'])->name('users.index');
+    Route::post('/users/{user}/toggle-block', [AdminController::class, 'toggleBlockUser'])->name('users.toggle-block');
+    Route::post('/users/{user}/role', [AdminController::class, 'updateUserRole'])->name('users.update-role');
+    Route::get('/communities', [AdminController::class, 'manageCommunities'])->name('communities.index');
+    Route::post('/communities/{community}/toggle-close', [AdminController::class, 'toggleCloseCommunity'])->name('communities.toggle-close');
+    Route::delete('/communities/{community}', [AdminController::class, 'deleteCommunity'])->name('communities.destroy');
+});
+
 Route::get('/communities', [CommunityController::class, 'index'])->name('communities.index');
 Route::get('/explore', [CommunityController::class, 'index'])->name('communities.explore');
 Route::get('/api/communities/check-name', [CommunityController::class, 'checkName'])->name('communities.check-name');
@@ -94,7 +109,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/c/{community:name}/join', [CommunityController::class, 'join'])->name('communities.join');
     Route::delete('/c/{community:name}/leave', [CommunityController::class, 'leave'])->name('communities.leave');
 
-    // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])
         ->name('notifications.index');
 
@@ -103,7 +117,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
         ->name('notifications.read');
-    });
+});
 
 require __DIR__ . '/posts.php';
 Route::get('/c/{community:name}', [CommunityController::class, 'show'])->name('communities.show');
