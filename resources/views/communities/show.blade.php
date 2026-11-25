@@ -4,7 +4,24 @@
         <div class="space-y-4">
             <!-- 1. Tentang Komunitas -->
             <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-xs">
-                <h4 class="text-sm font-bold text-slate-800 mb-2">Tentang komunitas</h4>
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-sm font-bold text-slate-800">Tentang komunitas</h4>
+                    @if($community->is_private)
+                        <span
+                            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            Privat
+                        </span>
+                    @else
+                        <span
+                            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            🌐 Publik
+                        </span>
+                    @endif
+                </div>
                 <p class="text-xs text-slate-600 leading-relaxed">
                     @if(is_array($about))
                         {{ $about['content'] ?? $about['description'] ?? $community->description ?? 'Belum ada deskripsi untuk komunitas ini.' }}
@@ -54,7 +71,7 @@
             <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-xs">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-sm font-bold text-slate-800">Aturan</h4>
-                    @can('update', $community)
+                    @can('manageRules', $community)
                         <a href="{{ route('communities.edit', $community->name) }}?tab=aturan"
                             class="text-[11px] font-semibold text-blue-600 hover:underline">
                             Kelola
@@ -153,7 +170,8 @@
                         <div
                             class="relative z-10 w-16 h-16 rounded-2xl bg-blue-100 text-blue-700 font-black text-lg flex items-center justify-center -mt-8 border-4 border-white shadow-md overflow-hidden">
                             @if($community->avatar_path)
-                                <img src="{{ $community->avatar_url }}" alt="{{ $community->name }}" class="w-full h-full object-cover">
+                                <img src="{{ $community->avatar_url }}" alt="{{ $community->name }}"
+                                    class="w-full h-full object-cover">
                             @else
                                 {{ strtoupper(substr($community->name, 0, 2)) }}
                             @endif
@@ -171,23 +189,36 @@
                             <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600">
                                 {{ $posts->total() }} diskusi
                             </span>
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
-                                Publik
-                            </span>
+                            @if($community->is_private)
+                                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    Privat
+                                </span>
+                            @else
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+                                    🌐 Publik
+                                </span>
+                            @endif
                         </div>
                     </div>
 
                     <!-- Tombol Aksi Kanan -->
                     <div class="flex items-center gap-2 shrink-0">
                         @auth
-                            <button type="button"
-                                @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
-                                class="px-4 py-2 rounded-full border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                </svg>
-                                <span>Buat Post</span>
-                            </button>
+                            @if($canViewContent)
+                                <button type="button"
+                                    @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
+                                    class="px-4 py-2 rounded-full border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    <span>Buat Post</span>
+                                </button>
+                            @endif
                         @endauth
 
                         <button type="button"
@@ -280,105 +311,132 @@
 
         <!-- ================= TAB 1: DISKUSI ================= -->
         <div x-show="currentTab === 'diskusi'" class="space-y-4">
-
-            <!-- KOTAK INPUT CEPAT BUAT POST DI KOMUNITAS INI -->
-            @auth
-                <div class="bg-white rounded-3xl p-4 border border-slate-100 shadow-xs flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
-                        {{ strtoupper(substr(Auth::user()->name ?? 'U', 0, 2)) }}
+            @if($canViewContent)
+                <!-- KOTAK INPUT CEPAT BUAT POST DI KOMUNITAS INI -->
+                @auth
+                    <div class="bg-white rounded-3xl p-4 border border-slate-100 shadow-xs flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+                            {{ strtoupper(substr(Auth::user()->name ?? 'U', 0, 2)) }}
+                        </div>
+                        <button type="button" @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
+                            class="flex-1 bg-slate-50 hover:bg-slate-100 text-left text-xs text-slate-400 px-4 py-2.5 rounded-xl border border-slate-200 transition-colors cursor-pointer">
+                            Mulai obrolan di c/{{ $community->name }}...
+                        </button>
+                        <button type="button" @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
+                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 shrink-0">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            <span>Buat Post</span>
+                        </button>
                     </div>
-                    <button type="button"
-                        @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
-                        class="flex-1 bg-slate-50 hover:bg-slate-100 text-left text-xs text-slate-400 px-4 py-2.5 rounded-xl border border-slate-200 transition-colors cursor-pointer">
-                        Mulai obrolan di c/{{ $community->name }}...
-                    </button>
-                    <button type="button"
-                        @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
-                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 shrink-0">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        <span>Buat Post</span>
-                    </button>
+                @endauth
+
+                @forelse($posts as $post)
+                    <article
+                        class="bg-white rounded-3xl p-5 border border-slate-100 shadow-xs hover:border-slate-200 transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-slate-800">{{ $post->user->name }}</span>
+                                @if($post->user->isAdmin())
+                                    <span
+                                        class="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">Admin</span>
+                                @elseif($community->isModerator($post->user))
+                                    <span
+                                        class="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">Moderator</span>
+                                @endif
+                                <span class="text-[11px] text-slate-400">· {{ $post->created_at->diffForHumans() }}</span>
+                            </div>
+                        </div>
+
+                        <h2 class="text-base font-bold text-slate-900 mb-1.5">
+                            <a href="{{ route('posts.show', $post) }}" class="hover:text-blue-600 transition-colors">
+                                {{ $post->title }}
+                            </a>
+                        </h2>
+                        <p class="text-xs text-slate-600 leading-relaxed mb-3 line-clamp-3">{{ $post->content }}</p>
+
+                        @if($post->image_path)
+                            <div class="mb-3 rounded-2xl overflow-hidden max-h-96 bg-slate-100 border border-slate-100">
+                                <img src="{{ Storage::url($post->image_path) }}" alt="{{ $post->title }}"
+                                    class="w-full object-cover">
+                            </div>
+                        @endif
+
+                        <div class="flex items-center gap-4 pt-3 border-t border-slate-100 text-xs text-slate-500 font-medium">
+                            <span class="flex items-center gap-1">
+                                <span>▲</span>
+                                <span>{{ $post->score }} vote</span>
+                            </span>
+                            <a href="{{ route('posts.show', $post) }}"
+                                class="hover:text-blue-600 transition-colors flex items-center gap-1">
+                                <span>💬</span>
+                                <span>{{ $post->comments->count() }} Balasan</span>
+                            </a>
+                        </div>
+                    </article>
+                @empty
+                    <div class="bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-xs">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3 text-lg font-bold">
+                            💬
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-800">Belum ada diskusi</h3>
+                        <p class="text-xs text-slate-500 mt-1">Jadilah yang pertama memulai obrolan di c/{{ $community->name }}!
+                        </p>
+
+                        <div class="mt-4">
+                            @auth
+                                <button type="button"
+                                    @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition cursor-pointer">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                                        </path>
+                                    </svg>
+                                    <span>Buat Post Sekarang</span>
+                                </button>
+                            @else
+                                <button type="button" @click="authModal = 'login'"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition cursor-pointer">
+                                    <span>Masuk untuk Membuat Post</span>
+                                </button>
+                            @endauth
+                        </div>
+                    </div>
+                @endforelse
+
+                <div>
+                    {{ $posts->links() }}
                 </div>
-            @endauth
-
-            @forelse($posts as $post)
-                <article
-                    class="bg-white rounded-3xl p-5 border border-slate-100 shadow-xs hover:border-slate-200 transition-all">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-bold text-slate-800">{{ $post->user->name }}</span>
-                            @if($post->user->isAdmin())
-                                <span
-                                    class="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">Admin</span>
-                            @elseif($community->isModerator($post->user))
-                                <span
-                                    class="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">Moderator</span>
-                            @endif
-                            <span class="text-[11px] text-slate-400">· {{ $post->created_at->diffForHumans() }}</span>
-                        </div>
+            @else
+                <!-- TAMPILAN TERKUNCI: KOMUNITAS PRIVAT -->
+                <div class="bg-white rounded-3xl p-10 sm:p-14 border border-slate-200/80 shadow-xs text-center space-y-4">
+                    <div class="w-16 h-16 rounded-3xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto text-3xl shadow-2xs">
+                        🔒
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Komunitas Ini Bersifat Privat</h3>
+                        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1.5 leading-relaxed">
+                            Diskusi dan postingan di dalam <strong>c/{{ $community->name }}</strong> hanya dapat diakses oleh anggota terdaftar.
+                        </p>
                     </div>
 
-                    <h2 class="text-base font-bold text-slate-900 mb-1.5">
-                        <a href="{{ route('posts.show', $post) }}" class="hover:text-blue-600 transition-colors">
-                            {{ $post->title }}
-                        </a>
-                    </h2>
-                    <p class="text-xs text-slate-600 leading-relaxed mb-3 line-clamp-3">{{ $post->content }}</p>
-
-                    @if($post->image_path)
-                        <div class="mb-3 rounded-2xl overflow-hidden max-h-96 bg-slate-100 border border-slate-100">
-                            <img src="{{ Storage::url($post->image_path) }}" alt="{{ $post->title }}"
-                                class="w-full object-cover">
-                        </div>
-                    @endif
-
-                    <div class="flex items-center gap-4 pt-3 border-t border-slate-100 text-xs text-slate-500 font-medium">
-                        <span class="flex items-center gap-1">
-                            <span>▲</span>
-                            <span>{{ $post->score }} vote</span>
-                        </span>
-                        <a href="{{ route('posts.show', $post) }}"
-                            class="hover:text-blue-600 transition-colors flex items-center gap-1">
-                            <span>💬</span>
-                            <span>{{ $post->comments->count() }} Balasan</span>
-                        </a>
-                    </div>
-                </article>
-            @empty
-                <div class="bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-xs">
-                    <div
-                        class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3 text-lg font-bold">
-                        💬
-                    </div>
-                    <h3 class="text-sm font-bold text-slate-800">Belum ada diskusi</h3>
-                    <p class="text-xs text-slate-500 mt-1">Jadilah yang pertama memulai obrolan di c/{{ $community->name }}!
-                    </p>
-
-                    <div class="mt-4">
-                        @auth
-                            <button type="button"
-                                @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
-                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition cursor-pointer">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                </svg>
-                                <span>Buat Post Sekarang</span>
-                            </button>
+                    <div class="pt-2">
+                        @guest
+                            <a href="{{ route('login') }}"
+                               class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-full shadow-xs transition">
+                                Masuk untuk Mengakses
+                            </a>
                         @else
-                            <button type="button" @click="authModal = 'login'"
-                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition cursor-pointer">
-                                <span>Masuk untuk Membuat Post</span>
-                            </button>
-                        @endauth
+                            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold">
+                                <span>Akses Terbatas · Akses masuk memerlukan undangan atau persetujuan pengelola</span>
+                            </div>
+                        @endguest
                     </div>
                 </div>
-            @endforelse
-
-            <div>
-                {{ $posts->links() }}
-            </div>
+            @endif
         </div>
 
         <!-- ================= TAB 2: TENTANG ================= -->
@@ -398,7 +456,8 @@
                 @if(is_array($about) && !empty($about['guidelines']))
                     <div class="pt-5 border-t border-slate-100">
                         <h3 class="text-sm font-bold text-slate-900 mb-2">Pedoman & Nilai Komunitas</h3>
-                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-xs text-slate-600 leading-relaxed whitespace-pre-line">
+                        <div
+                            class="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-xs text-slate-600 leading-relaxed whitespace-pre-line">
                             {{ $about['guidelines'] }}
                         </div>
                     </div>

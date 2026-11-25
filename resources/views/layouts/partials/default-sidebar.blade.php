@@ -1,4 +1,5 @@
-<!-- DEFAULT RIGHT SIDEBAR (Sesuai Data Seeder Tanpa Hardcoded Data) -->
+
+<!-- DEFAULT RIGHT SIDEBAR -->
 <aside class="space-y-4">
 
     <!-- 1. Tombol Buat Komunitas -->
@@ -13,13 +14,14 @@
         </button>
     </div>
 
-    <!-- 2. Daftar Komunitas yang Tersedia (Terhubung ke Detail Komunitas) -->
+    <!-- 2. Daftar Komunitas Pilihan -->
     <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-xs">
         <div class="flex items-center justify-between mb-3.5">
             <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">
                 Komunitas Pilihan
             </h4>
-            <a href="{{ route('communities.index') }}" class="text-[11px] font-semibold text-blue-600 hover:underline">
+            <a href="{{ route('communities.index') }}"
+                class="text-[11px] font-semibold text-blue-600 hover:underline">
                 Lihat semua &rarr;
             </a>
         </div>
@@ -28,13 +30,22 @@
             @forelse($globalCommunities as $comm)
                 @php
                     $initial = strtoupper(substr($comm->name, 0, 2));
+
+                    $isMember = auth()->check() &&
+                        auth()->user()->joinedCommunities()
+                            ->where('communities.id', $comm->id)
+                            ->exists();
                 @endphp
+
                 <div class="flex items-center justify-between gap-2.5 p-2 rounded-2xl hover:bg-slate-50 transition">
-                    <a href="{{ route('communities.show', $comm->name) }}" class="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div
-                            class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+
+                    <a href="{{ route('communities.show', $comm->name) }}"
+                        class="flex items-center gap-2.5 min-w-0 flex-1">
+
+                        <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
                             {{ $initial }}
                         </div>
+
                         <div class="min-w-0">
                             <p class="text-xs font-bold text-slate-800 hover:text-blue-600 transition truncate">
                                 c/{{ $comm->name }}
@@ -45,13 +56,23 @@
                         </div>
                     </a>
 
-                    <a href="{{ route('communities.show', $comm->name) }}"
-                        class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition shrink-0">
-                        Gabung
-                    </a>
+                    @if($isMember)
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-600 shrink-0">
+                            Tergabung ✓
+                        </span>
+                    @else
+                        <a href="{{ route('communities.show', $comm->name) }}"
+                            class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition shrink-0">
+                            Gabung
+                        </a>
+                    @endif
+
                 </div>
+
             @empty
-                <p class="text-xs text-slate-400">Belum ada komunitas terdaftar.</p>
+                <p class="text-xs text-slate-400">
+                    Belum ada komunitas terdaftar.
+                </p>
             @endforelse
         </div>
     </div>
@@ -59,7 +80,8 @@
     <!-- 3. Info Singkat Project -->
     <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs text-xs text-slate-500 space-y-1.5">
         <p class="font-bold text-slate-700">CoHub (Kelompok 6)</p>
-        <p class="text-[11px] text-slate-400">Pemrograman Web Lanjut — Jurusan Ilmu Komputer Universitas Lampung 2026
+        <p class="text-[11px] text-slate-400">
+            Pemrograman Web Lanjut — Jurusan Ilmu Komputer Universitas Lampung 2026
         </p>
     </div>
 

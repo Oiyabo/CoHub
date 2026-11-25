@@ -29,8 +29,33 @@
               x-init="{{ $errors->hasAny(['community_id', 'title', 'content', 'image']) ? 'createPostOpen = true' : '' }}">
             @csrf
 
+            @php
+                // Hanya komunitas yang diikuti (Gabung / moderator / pembuat) yang boleh dipilih.
+                $myCommunities = auth()->check()
+                    ? auth()->user()->joinedCommunities()->orderBy('communities.name')->get()
+                    : collect();
+
+                $joinedIds = $myCommunities->pluck('id')->map(fn ($id) => (string) $id)->values();
+                $communityList = $globalCommunities
+                    ->map(fn ($c) => ['id' => (string) $c->id, 'name' => $c->name])
+                    ->values();
+            @endphp
+
             <!-- Pilih Komunitas (Opsional) -->
-            <div>
+            <div x-data="{
+                    joinedIds: @js($joinedIds),
+                    allCommunities: @js($communityList),
+                    notJoined: ''
+                 }"
+                 x-effect="
+                    if (selectedCommunityId && !joinedIds.includes(String(selectedCommunityId))) {
+                        const found = allCommunities.find(c => c.id === String(selectedCommunityId));
+                        notJoined = found ? found.name : '';
+                        selectedCommunityId = '';
+                    } else if (selectedCommunityId) {
+                        notJoined = '';
+                    }
+                 ">
                 <label class="block text-xs font-semibold text-slate-700 mb-2">
                     Komunitas <span class="font-normal text-slate-400">(Opsional)</span>
                 </label>
@@ -40,7 +65,7 @@
 
                     <option value="">Postingan umum (tanpa komunitas)</option>
 
-                    @foreach ($globalCommunities as $comm)
+                    @foreach ($myCommunities as $comm)
                         <option value="{{ $comm->id }}"
                             {{ (string) old('community_id') === (string) $comm->id ? 'selected' : '' }}>
                             c/{{ $comm->name }}
@@ -49,7 +74,19 @@
                 </select>
 
                 <p class="text-[11px] text-slate-400 mt-1">
-                    Pilih komunitas jika ingin membagikan postingan di komunitas tertentu.
+                    @if ($myCommunities->isEmpty())
+                        Kamu belum bergabung ke komunitas mana pun.
+                        <a href="{{ route('communities.index') }}" class="text-blue-600 font-semibold hover:underline">Jelajahi komunitas</a>
+                        untuk bergabung, atau posting sebagai postingan umum.
+                    @else
+                        Hanya komunitas yang kamu ikuti yang muncul di sini.
+                    @endif
+                </p>
+
+                <p x-show="notJoined" style="display: none;"
+                   class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-1.5">
+                    Kamu belum bergabung ke <span class="font-semibold" x-text="'c/' + notJoined"></span>.
+                    Gabung dulu agar bisa memposting di sana. Untuk sementara postingan ini dibuat sebagai postingan umum.
                 </p>
 
                 @error('community_id')
@@ -120,10 +157,14 @@
 
             <!-- Footer Actions -->
             <div class="flex items-center justify-between pt-4 border-t border-slate-100 shrink-0">
-                <button type="button" @click="createPostOpen = false"
+                <button type="submit"
+                    formaction="{{ route('posts.drafts.store') }}"
+                    formmethod="POST"
+                    formnovalidate
                     class="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors">
                     Simpan draft
                 </button>
+
                 <div class="flex items-center gap-3">
                     <span class="text-[11px] text-slate-400 font-mono" x-text="content.length + ' / 500'">0 / 500</span>
                     <button type="submit"
@@ -276,6 +317,40 @@
                 @error('banner')
                     <p class="text-xs text-rose-600 mt-1">{{ $message }}</p>
                 @enderror
+            </div>
+
+            <!-- Tipe Komunitas (Privasi) -->
+            <div>
+                <label class="block text-xs font-bold text-slate-800 mb-1.5">Tipe Komunitas</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" x-data="{ isPrivate: '0' }">
+                    <!-- Publik -->
+                    <label
+                        :class="isPrivate === '0' ? 'border-blue-500 bg-blue-50/30 ring-1 ring-blue-500' : 'border-slate-200 bg-slate-50'"
+                        class="flex items-start gap-2.5 p-3 border rounded-xl cursor-pointer transition">
+                        <input type="radio" name="is_private" value="0" x-model="isPrivate"
+                            class="mt-0.5 text-blue-600 focus:ring-0">
+                        <div>
+                            <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                <span>🌐 Publik</span>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-0.5 leading-normal">Bisa dilihat dan diikuti oleh siapa saja.</p>
+                        </div>
+                    </label>
+
+                    <!-- Privat -->
+                    <label
+                        :class="isPrivate === '1' ? 'border-blue-500 bg-blue-50/30 ring-1 ring-blue-500' : 'border-slate-200 bg-slate-50'"
+                        class="flex items-start gap-2.5 p-3 border rounded-xl cursor-pointer transition">
+                        <input type="radio" name="is_private" value="1" x-model="isPrivate"
+                            class="mt-0.5 text-blue-600 focus:ring-0">
+                        <div>
+                            <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                <span>🔒 Privat</span>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-0.5 leading-normal">Hanya anggota terdaftar yang bisa melihat postingan.</p>
+                        </div>
+                    </label>
+                </div>
             </div>
 
             <!-- Nama Komunitas (Live AJAX Check) -->

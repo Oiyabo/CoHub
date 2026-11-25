@@ -125,10 +125,17 @@
                                 @endif
                             </div>
 
-                            <a href="{{ route('communities.show', $comm->name) }}"
-                                class="block font-bold text-slate-900 text-sm mt-3 hover:text-blue-600 transition">
-                                c/{{ $comm->name }}
-                            </a>
+                            <div class="flex items-center gap-1.5 mt-3">
+                                <a href="{{ route('communities.show', $comm->name) }}"
+                                    class="block font-bold text-slate-900 text-sm hover:text-blue-600 transition truncate">
+                                    c/{{ $comm->name }}
+                                </a>
+                                @if($comm->is_private)
+                                    <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                                        🔒 Privat
+                                    </span>
+                                @endif
+                            </div>
 
                             <p class="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
                                 {{ $comm->description ?? 'Komunitas diskusi mahasiswa.' }}
@@ -142,10 +149,35 @@
                             {{ $comm->posts_count ?? 0 }} post · {{ $comm->moderators_count ?? 1 }} mod
                         </span>
 
+                        @auth
+                        @if($comm->isMember(Auth::user()))
+                            <form action="{{ route('communities.leave', $comm->name) }}"
+                                method="POST"
+                                onsubmit="return confirm('Yakin ingin keluar dari komunitas ini?')">
+                                @csrf
+                                @method('DELETE')
+
+                                <button type="submit"
+                                    class="px-4 py-1.5 rounded-full border border-slate-200 bg-slate-100 text-slate-600 font-semibold text-xs">
+                                    Tergabung ✓
+                                </button>
+                            </form>
+                        @else
+                            <form action="{{ route('communities.join', $comm->name) }}" method="POST">
+                                @csrf
+
+                                <button type="submit"
+                                    class="px-4 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs">
+                                    Gabung
+                                </button>
+                            </form>
+                        @endif
+                    @else
                         <a href="{{ route('communities.show', $comm->name) }}"
-                            class="px-4 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition shadow-2xs">
-                            Gabung
+                            class="px-4 py-1.5 rounded-full bg-blue-600 text-white font-semibold text-xs">
+                            Lihat Komunitas
                         </a>
+                    @endauth
                     </div>
                 </div>
             @empty

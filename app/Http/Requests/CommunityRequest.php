@@ -38,6 +38,7 @@ class CommunityRequest extends FormRequest
             ],
             'banner' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'is_private' => ['nullable', 'boolean'],
         ];
 
     }
@@ -57,6 +58,7 @@ class CommunityRequest extends FormRequest
             'avatar.max' => 'Ukuran gambar avatar maksimal 2 MB.',
             'category.required' => 'Kategori komunitas wajib dipilih.',
             'category.in' => 'Kategori komunitas tidak valid.',
+            'is_private.boolean' => 'Status privat harus berupa boolean.',
         ];
     }
 }

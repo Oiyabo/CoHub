@@ -74,6 +74,7 @@ class CommunityController extends Controller
             'name' => strtolower($validated['name']),
             'description' => $validated['description'] ?? null,
             'category' => $validated['category'] ?? null,
+            'is_private' => $request->boolean('is_private'),
             'banner_path' => $bannerPath,
             'avatar_path' => $avatarPath,
             'created_by' => Auth::id(),
@@ -88,13 +89,16 @@ class CommunityController extends Controller
     {
         $community->loadCount(['members', 'posts']);
 
-        $posts = $community->posts()
-            ->with(['user', 'comments.user', 'votes'])
-            ->latest()
-            ->paginate(10);
+        $user = Auth::user();
+        $isMember = $community->isMember($user);
+        $canViewContent = !$community->is_private || ($user && ($user->isAdmin() || $isMember));
+
+        $posts = $canViewContent
+            ? $community->posts()->with(['user', 'comments.user', 'votes'])->latest()->paginate(10)
+            : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 
         $moderators = $community->moderators()->get();
-        $isMember = $community->isMember(Auth::user());
+        // $isMember = $community->isMember(Auth::user());
         $members = $community->members()->withPivot('role')->latest('community_members.created_at')->get();
 
         $rules = $community->rules ?? [];
@@ -103,17 +107,24 @@ class CommunityController extends Controller
         return view('communities.show', compact(
             'community',
             'posts',
-            'moderators',
             'isMember',
+            'canViewContent',
+            'moderators',
+            // 'isMember',
             'members',
             'rules',
             'about'
         ));
     }
 
-    public function edit(Community $community): View
+    public function edit(Request $request, Community $community): View
     {
-        Gate::authorize('update', $community);
+        $tab = $request->query('tab', 'identitas');
+        if (in_array($tab, ['aturan', 'tentang'])) {
+            Gate::authorize('manageRules', $community);
+        } else {
+            Gate::authorize('update', $community);
+        }
 
         return view('communities.edit', compact('community'));
     }
@@ -133,6 +144,7 @@ class CommunityController extends Controller
         $community->name = strtolower($validated['name']);
         $community->description = $validated['description'] ?? null;
         $community->category = $validated['category'] ?? null;
+        $community->is_private = $request->boolean('is_private');
         $community->save();
 
         return redirect()->route('communities.show', $community->name)
@@ -238,6 +250,10 @@ class CommunityController extends Controller
 
     public function join(Community $community): RedirectResponse
     {
+        if ($community->is_private && !Auth::user()->isAdmin() && $community->created_by !== Auth::id()) {
+            return back()->with('error', 'Komunitas ini bersifat privat. Akses masuk hanya melalui undangan atau persetujuan pengelola.');
+        }
+
         if (!$community->isMember(Auth::user())) {
             $community->members()->attach(Auth::id(), ['role' => 'member']);
         }
@@ -258,7 +274,7 @@ class CommunityController extends Controller
 
     public function updateAbout(UpdateCommunityAboutRequest $request, Community $community): RedirectResponse
     {
-        Gate::authorize('update', $community);
+        Gate::authorize('manageRules', $community);
 
         // Langsung simpan $validated ke kolom about:
         $community->update(['about' => $request->validated()]);
@@ -269,7 +285,7 @@ class CommunityController extends Controller
 
     public function addRule(CommunityRuleRequest $request, Community $community): JsonResponse|RedirectResponse
     {
-        Gate::authorize('update', $community);
+        Gate::authorize('manageRules', $community);
         $validated = $request->validated();
 
         $newRule = $community->addRule($validated);
@@ -289,7 +305,7 @@ class CommunityController extends Controller
 
     public function updateRule(CommunityRuleRequest $request, Community $community, $ruleId): JsonResponse|RedirectResponse
     {
-        Gate::authorize('update', $community);
+        Gate::authorize('manageRules', $community);
         $validated = $request->validated();
 
         $community->updateRule($ruleId, $validated);
@@ -308,7 +324,7 @@ class CommunityController extends Controller
 
     public function deleteRule(Request $request, Community $community, $ruleId): JsonResponse|RedirectResponse
     {
-        Gate::authorize('update', $community);
+        Gate::authorize('manageRules', $community);
 
         $community->deleteRule($ruleId);
 
@@ -326,7 +342,7 @@ class CommunityController extends Controller
 
     public function resetDefaultRules(Request $request, Community $community): JsonResponse|RedirectResponse
     {
-        Gate::authorize('update', $community);
+        Gate::authorize('manageRules', $community);
 
         $defaultRules = $community->resetDefaultRules();
 

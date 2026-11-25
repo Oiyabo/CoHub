@@ -14,22 +14,24 @@ class Community extends Model
 {
     use HasFactory;
 
-        protected $fillable = [
-            'name',
-            'description',
-            'category',
-            'banner_path',
-            'avatar_path',
-            'created_by',
-            'rules',
-            'about',
-        ];
+    protected $fillable = [
+        'name',
+        'description',
+        'category',
+        'is_private',
+        'banner_path',
+        'avatar_path',
+        'created_by',
+        'rules',
+        'about',
+    ];
 
     protected function casts(): array
     {
         return [
             'rules' => 'array',
             'about' => 'array',
+            'is_private' => 'boolean',
         ];
     }
 

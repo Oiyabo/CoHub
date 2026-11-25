@@ -10,6 +10,41 @@
         <form action="{{ route('communities.store') }}" method="POST" enctype="multipart/form-data" class="space-y-5">
             @csrf
 
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Tipe Komunitas</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" x-data="{ isPrivate: '0' }">
+                    <!-- Publik -->
+                    <label
+                        :class="isPrivate === '0' ? 'border-blue-500 bg-blue-50/30 ring-1 ring-blue-500' : 'border-slate-200 bg-slate-50'"
+                        class="flex items-start gap-3 p-3.5 border rounded-2xl cursor-pointer transition">
+                        <input type="radio" name="is_private" value="0" x-model="isPrivate"
+                            class="mt-0.5 text-blue-600 focus:ring-0">
+                        <div>
+                            <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                <span>🌐 Publik</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-0.5 leading-normal">Siapa saja bisa melihat, membaca
+                                postingan, dan bergabung.</p>
+                        </div>
+                    </label>
+
+                    <!-- Privat -->
+                    <label
+                        :class="isPrivate === '1' ? 'border-blue-500 bg-blue-50/30 ring-1 ring-blue-500' : 'border-slate-200 bg-slate-50'"
+                        class="flex items-start gap-3 p-3.5 border rounded-2xl cursor-pointer transition">
+                        <input type="radio" name="is_private" value="1" x-model="isPrivate"
+                            class="mt-0.5 text-blue-600 focus:ring-0">
+                        <div>
+                            <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                <span>🔒 Privat</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-0.5 leading-normal">Hanya anggota yang terdaftar
+                                yang dapat melihat isi komunitas.</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
             <!-- NAMA KOMUNITAS (DENGAN AJAX CHECK-NAME) -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Nama komunitas</label>
@@ -68,24 +103,21 @@
 
                 <!-- KARTU PREVIEW GAYA TWITTER/DISCORD (UKURAN TERKUNCI & TIDAK BISA MELEDAK) -->
                 <div class="rounded-3xl border border-slate-200 bg-slate-50 overflow-hidden shadow-2xs">
-                    
+
                     <!-- 1. AREA BANNER (TINGGI TERKUNCI 130PX) -->
                     <div class="relative w-full bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 overflow-hidden"
-                         style="height: 130px; min-height: 130px; max-height: 130px;"
-                         @dragover.prevent="isDraggingBanner = true"
-                         @dragenter.prevent="isDraggingBanner = true"
-                         @dragleave.prevent="isDraggingBanner = false"
-                         @drop.prevent="handleBannerDrop($event)">
+                        style="height: 130px; min-height: 130px; max-height: 130px;"
+                        @dragover.prevent="isDraggingBanner = true" @dragenter.prevent="isDraggingBanner = true"
+                        @dragleave.prevent="isDraggingBanner = false" @drop.prevent="handleBannerDrop($event)">
 
                         <!-- Hidden Native Input Banner -->
-                        <input type="file" name="banner" x-ref="bannerInput"
-                            accept="image/png,image/jpeg,image/webp" class="sr-only"
-                            @change="handleBannerSelect($event)">
+                        <input type="file" name="banner" x-ref="bannerInput" accept="image/png,image/jpeg,image/webp"
+                            class="sr-only" @change="handleBannerSelect($event)">
 
                         <!-- Gambar Banner Jika Terpilih -->
                         <template x-if="bannerPreview">
                             <img :src="bannerPreview" alt="Banner" class="w-full h-full object-cover"
-                                 style="width: 100%; height: 100%; object-fit: cover;">
+                                style="width: 100%; height: 100%; object-fit: cover;">
                         </template>
 
                         <!-- Dragging Overlay untuk Banner -->
@@ -100,8 +132,11 @@
                             <button type="button" @click="$refs.bannerInput.click()"
                                 class="px-2.5 py-1 rounded-xl bg-white/90 hover:bg-white text-slate-700 hover:text-blue-600 text-[11px] font-semibold backdrop-blur-xs shadow-xs border border-white/60 transition-all flex items-center gap-1 cursor-pointer">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                                    </path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 </svg>
                                 <span x-text="bannerPreview ? 'Ganti Banner' : '+ Banner'"></span>
                             </button>
@@ -121,7 +156,7 @@
                             <div class="flex items-end gap-3.5 min-w-0">
                                 <!-- Kotak Avatar Bulat/Rounded Terkunci Ukurannya (76x76px) -->
                                 <div class="relative rounded-2xl bg-white p-1 shadow-md border border-slate-200 shrink-0"
-                                     style="width: 76px; height: 76px; min-width: 76px; min-height: 76px; max-width: 76px; max-height: 76px;">
+                                    style="width: 76px; height: 76px; min-width: 76px; min-height: 76px; max-width: 76px; max-height: 76px;">
 
                                     <!-- Hidden Native Input Avatar -->
                                     <input type="file" name="avatar" x-ref="avatarInput"
@@ -129,31 +164,34 @@
                                         @change="handleAvatarSelect($event)">
 
                                     <div class="w-full h-full rounded-xl overflow-hidden bg-blue-100 text-blue-700 flex items-center justify-center font-black text-xl relative group cursor-pointer"
-                                         style="width: 100%; height: 100%;"
-                                         @click="$refs.avatarInput.click()"
-                                         @dragover.prevent="isDraggingAvatar = true"
-                                         @dragenter.prevent="isDraggingAvatar = true"
-                                         @dragleave.prevent="isDraggingAvatar = false"
-                                         @drop.prevent="handleAvatarDrop($event)"
-                                         title="Klik atau seret gambar untuk memilih logo">
+                                        style="width: 100%; height: 100%;" @click="$refs.avatarInput.click()"
+                                        @dragover.prevent="isDraggingAvatar = true"
+                                        @dragenter.prevent="isDraggingAvatar = true"
+                                        @dragleave.prevent="isDraggingAvatar = false"
+                                        @drop.prevent="handleAvatarDrop($event)"
+                                        title="Klik atau seret gambar untuk memilih logo">
 
                                         <!-- Gambar Avatar Jika Ada -->
                                         <template x-if="avatarPreview">
                                             <img :src="avatarPreview" alt="Avatar" class="w-full h-full object-cover"
-                                                 style="width: 100%; height: 100%; object-fit: cover;">
+                                                style="width: 100%; height: 100%; object-fit: cover;">
                                         </template>
 
                                         <!-- Inisial Huruf Jika Belum Ada Gambar -->
                                         <template x-if="!avatarPreview">
-                                            <span x-text="name && name.length >= 2 ? name.substring(0, 2).toUpperCase() : 'C/'"></span>
+                                            <span
+                                                x-text="name && name.length >= 2 ? name.substring(0, 2).toUpperCase() : 'C/'"></span>
                                         </template>
 
                                         <!-- Overlay Kamera Saat Hover / Drag -->
                                         <div class="absolute inset-0 bg-slate-900/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                             :class="isDraggingAvatar ? 'opacity-100 bg-blue-600/60' : ''">
+                                            :class="isDraggingAvatar ? 'opacity-100 bg-blue-600/60' : ''">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                                                </path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                             </svg>
                                         </div>
                                     </div>
@@ -183,8 +221,10 @@
                         </div>
 
                         <!-- Info Error jika ada -->
-                        <p x-show="avatarError" x-text="avatarError" class="text-xs text-rose-600 font-medium mt-2" style="display: none;"></p>
-                        <p x-show="bannerError" x-text="bannerError" class="text-xs text-rose-600 font-medium mt-2" style="display: none;"></p>
+                        <p x-show="avatarError" x-text="avatarError" class="text-xs text-rose-600 font-medium mt-2"
+                            style="display: none;"></p>
+                        <p x-show="bannerError" x-text="bannerError" class="text-xs text-rose-600 font-medium mt-2"
+                            style="display: none;"></p>
                     </div>
                 </div>
 

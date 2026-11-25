@@ -27,14 +27,16 @@ class PostFeed
     public static function get(?string $tab = null, int $limit = 30): Collection
     {
         $query = Post::query()
+            ->where('status', 'published')
             ->with(['user.moderatedCommunities', 'community'])
             ->withCount([
                 'comments',
-                'votes as upvotes_count' => fn ($q) => $q->where('vote_type', 'upvote'),
-                'votes as downvotes_count' => fn ($q) => $q->where('vote_type', 'downvote'),
+                'votes as upvotes_count' => fn($q) => $q->where('vote_type', 'upvote'),
+                'votes as downvotes_count' => fn($q) => $q->where('vote_type', 'downvote'),
             ]);
 
         self::applyOrder($query, $tab);
+        self::applyVisibility($query);
 
         // "Untuk Anda" dan "Terbaru" sementara sama-sama urut terbaru
         // (belum ada tabel keanggotaan komunitas untuk personalisasi).
@@ -47,11 +49,44 @@ class PostFeed
      */
     public static function ids(?string $tab = null): SupportCollection
     {
-        $query = Post::query()->select('posts.id');
+        $query = Post::query()
+            ->where('status', 'published')
+            ->select('posts.id');
 
         self::applyOrder($query, $tab);
+        self::applyVisibility($query);
 
         return $query->latest()->pluck('id');
+    }
+
+    /**
+     * Filter visibilitas postingan: sembunyikan postingan komunitas privat
+     * dari pengguna yang bukan anggota/pembuat/admin.
+     */
+    public static function applyVisibility(Builder $query, ?\App\Models\User $user = null): void
+    {
+        $user = $user ?? auth()->user();
+
+        $query->where(function (Builder $q) use ($user) {
+            // 1. Post tanpa komunitas atau dari komunitas publik
+            $q->whereHas('community', fn($c) => $c->where('is_private', false))
+                ->orWhereNull('community_id');
+
+            // 2. Atau dari komunitas privat yang user merupakan anggota, pembuat, atau admin global
+            if ($user) {
+                if ($user->isAdmin()) {
+                    $q->orWhereNotNull('community_id');
+                } else {
+                    $q->orWhereHas('community', function ($c) use ($user) {
+                        $c->where('is_private', true)
+                            ->where(function ($sub) use ($user) {
+                                $sub->where('created_by', $user->id)
+                                    ->orWhereHas('members', fn($m) => $m->where('users.id', $user->id));
+                            });
+                    });
+                }
+            }
+        });
     }
 
     /**
@@ -64,7 +99,7 @@ class PostFeed
         if (self::normalizeTab($tab) === 'teratas') {
             $query->orderByRaw(
                 "(select count(*) from votes where votes.post_id = posts.id and votes.vote_type = 'upvote')"
-                ." - (select count(*) from votes where votes.post_id = posts.id and votes.vote_type = 'downvote') desc"
+                . " - (select count(*) from votes where votes.post_id = posts.id and votes.vote_type = 'downvote') desc"
             );
         }
     }

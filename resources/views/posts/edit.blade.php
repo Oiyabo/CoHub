@@ -6,7 +6,7 @@
              x-data="{ content: @js(old('content', $post->content)) }">
 
             <h1 class="text-base font-bold text-slate-800">Edit postingan</h1>
-            <p class="text-xs text-slate-400 mt-0.5">c/{{ $post->community->name }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">{{ $post->community ? 'c/'.$post->community->name : 'Postingan umum' }}</p>
 
             <form method="POST" action="{{ route('posts.update', $post) }}" enctype="multipart/form-data"
                   class="mt-4 space-y-4">
@@ -62,11 +62,23 @@
                         Batal
                     </a>
                     <div class="flex items-center gap-3">
-                        <span class="text-[11px] text-slate-400 font-mono" x-text="content.length + ' / 500'"></span>
+                        <span class="text-[11px] text-slate-400 font-mono"
+                            x-text="content.length + ' / 500'"></span>
+
                         <button type="submit"
-                                class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer">
+                                class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-all">
                             Simpan perubahan
                         </button>
+
+                        @if ($post->status === 'draft')
+                            <button type="submit"
+                                    name="action"
+                                    value="publish"
+                                    onclick="return confirm('Publikasikan postingan ini?')"
+                                    class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all">
+                                Publikasikan
+                            </button>
+                        @endif
                     </div>
                 </div>
             </form>
