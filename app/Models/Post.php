@@ -42,16 +42,25 @@ class Post extends Model
     {
         return $this->hasMany(Vote::class);
     }
-    // Pengguna yang menyimpan postingan ini
     public function savedByUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'saved_posts')
             ->withTimestamps();
     }
 
-
     public function getScoreAttribute(): int
     {
+        if (array_key_exists('upvotes_count', $this->attributes) || isset($this->upvotes_count)) {
+            return (int) ($this->upvotes_count ?? 0) - (int) ($this->downvotes_count ?? 0);
+        }
+
+        if ($this->relationLoaded('votes')) {
+            $up = $this->votes->where('vote_type', 'upvote')->count();
+            $down = $this->votes->where('vote_type', 'downvote')->count();
+
+            return $up - $down;
+        }
+
         $up = $this->votes()->where('vote_type', 'upvote')->count();
         $down = $this->votes()->where('vote_type', 'downvote')->count();
 
@@ -60,11 +69,15 @@ class Post extends Model
 
     public function getImageUrlAttribute(): ?string
     {
-        if (!$this->image_path) {
+        if (! $this->image_path) {
             return null;
         }
 
-        return Storage::disk('s3')->url($this->image_path);
+        if (filled(config('filesystems.disks.s3.bucket'))) {
+            return Storage::disk('s3')->url($this->image_path);
+        }
+
+        return Storage::disk('public')->url($this->image_path);
     }
 
     public function buildCommentTree(): Collection
