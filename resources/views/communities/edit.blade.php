@@ -236,6 +236,27 @@
                             </span>
                         </div>
                     </div>
+                    <!-- Kategori Komunitas -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                                Kategori komunitas
+                            </label>
+
+                            <select name="category" required
+                                class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+                                <option value="">Pilih kategori</option>
+                                @foreach (['Teknologi', 'Akademik', 'Kampus', 'Data', 'Karier'] as $category)
+                                    <option value="{{ $category }}"
+                                        @selected(old('category', $community->category) === $category)>
+                                        {{ $category }}
+                                    </option>
+                                @endforeach
+                            </select>
+
+                            @error('category')
+                                <p class="text-xs text-rose-600 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
 
                     <!-- Deskripsi -->
                     <div>
