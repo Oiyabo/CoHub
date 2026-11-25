@@ -20,14 +20,28 @@ Route::get('/posts/{post}', [PostController::class, 'show'])
 
 // Wajib login
 Route::middleware('auth')->group(function () {
-    Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
+
+    // Route Draft
+    Route::get('/posts/drafts', [PostController::class, 'drafts'])
+        ->name('posts.drafts');
+
+    Route::post('/posts/drafts', [PostController::class, 'saveDraft'])
+        ->name('posts.drafts.store');
+
+    // Route Postingan
+    Route::post('/posts', [PostController::class, 'store'])
+        ->name('posts.store');
+
     Route::get('/posts/{post}/edit', [PostController::class, 'edit'])
         ->whereNumber('post')
         ->name('posts.edit');
+
     Route::patch('/posts/{post}', [PostController::class, 'update'])
         ->whereNumber('post')
         ->name('posts.update');
+
     Route::delete('/posts/{post}', [PostController::class, 'destroy'])
         ->whereNumber('post')
         ->name('posts.destroy');
 });
+

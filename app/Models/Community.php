@@ -17,6 +17,7 @@ class Community extends Model
     protected $fillable = [
         'name',
         'description',
+        'is_private',
         'banner_path',
         'avatar_path',
         'created_by',
@@ -29,6 +30,7 @@ class Community extends Model
         return [
             'rules' => 'array',
             'about' => 'array',
+            'is_private' => 'boolean',
         ];
     }
 

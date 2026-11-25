@@ -2,7 +2,8 @@
     $depth = $depth ?? 0;
 @endphp
 
-<div class="mt-3 {{ $depth > 0 ? 'ml-4 sm:ml-6 border-l-2 border-slate-200 pl-3' : '' }}"
+<div id="comment-{{ $comment->id }}"
+     class="mt-3 scroll-mt-24 {{ $depth > 0 ? 'ml-4 sm:ml-6 border-l-2 border-slate-200 pl-3' : '' }}"
      data-comment-id="{{ $comment->id }}">
 
     <div class="bg-slate-50 p-3 rounded-xl border border-slate-100"

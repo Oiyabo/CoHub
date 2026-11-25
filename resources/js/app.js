@@ -1,47 +1,48 @@
-import './bootstrap';
+import "./bootstrap";
 
-import Alpine from 'alpinejs';
+import Alpine from "alpinejs";
 
 window.Alpine = Alpine;
 
 Alpine.start();
 
 function createRepliesGroup() {
-    const group = document.createElement('div');
+    const group = document.createElement("div");
 
-    group.className = 'mt-2';
-    group.dataset.repliesGroup = '';
-    group.setAttribute('x-data', '{ open: true }');
+    group.className = "mt-2";
+    group.dataset.repliesGroup = "";
+    group.setAttribute("x-data", "{ open: true }");
 
-    const button = document.createElement('button');
+    const button = document.createElement("button");
 
-    button.type = 'button';
-    button.className = 'text-[11px] text-slate-500 font-semibold cursor-pointer flex items-center gap-1';
-    button.setAttribute('@click', 'open = !open');
-    button.setAttribute(':aria-expanded', 'open');
+    button.type = "button";
+    button.className =
+        "text-[11px] text-slate-500 font-semibold cursor-pointer flex items-center gap-1";
+    button.setAttribute("@click", "open = !open");
+    button.setAttribute(":aria-expanded", "open");
 
-    const arrow = document.createElement('span');
-    arrow.setAttribute('x-text', "open ? '▼' : '▶'");
+    const arrow = document.createElement("span");
+    arrow.setAttribute("x-text", "open ? '▼' : '▶'");
 
-    const count = document.createElement('span');
-    count.dataset.repliesCount = '';
-    count.textContent = '1 Balasan';
+    const count = document.createElement("span");
+    count.dataset.repliesCount = "";
+    count.textContent = "1 Balasan";
 
     button.append(arrow, count);
 
-    const list = document.createElement('div');
+    const list = document.createElement("div");
 
-    list.className = 'mt-2';
-    list.dataset.repliesList = '';
-    list.setAttribute('x-show', 'open');
+    list.className = "mt-2";
+    list.dataset.repliesList = "";
+    list.setAttribute("x-show", "open");
 
     group.append(button, list);
 
     return group;
 }
 
-document.addEventListener('submit', async function (event) {
-    const form = event.target.closest('form[data-comment-ajax]');
+document.addEventListener("submit", async function (event) {
+    const form = event.target.closest("form[data-comment-ajax]");
 
     if (!form) {
         return;
@@ -56,53 +57,49 @@ document.addEventListener('submit', async function (event) {
     }
 
     try {
-        const csrfToken = document.querySelector(
-            'meta[name="csrf-token"]'
-        );
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
 
         const response = await fetch(form.action, {
-            method: 'POST',
+            method: "POST",
             headers: {
-                'X-CSRF-TOKEN': csrfToken.content,
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                "X-CSRF-TOKEN": csrfToken.content,
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest",
             },
             body: new FormData(form),
-            credentials: 'same-origin'
+            credentials: "same-origin",
         });
 
         const data = await response.json();
 
         if (!response.ok) {
             const errors = data.errors
-                ? Object.values(data.errors).flat().join('\n')
-                : data.message || 'Terjadi kesalahan.';
+                ? Object.values(data.errors).flat().join("\n")
+                : data.message || "Terjadi kesalahan.";
 
             alert(errors);
             return;
         }
 
-        const post = form.closest('[data-post-id]');
+        const post = form.closest("[data-post-id]");
 
-        if (form.dataset.commentAjax === 'store') {
-            const commentsList = post.querySelector(
-                '[data-comments-list]'
-            );
+        if (form.dataset.commentAjax === "store") {
+            const commentsList = post.querySelector("[data-comments-list]");
 
-            const template = document.createElement('template');
+            const template = document.createElement("template");
             template.innerHTML = data.html.trim();
 
             if (data.parent_id) {
                 const parent = post.querySelector(
-                    `[data-comment-id="${data.parent_id}"]`
+                    `[data-comment-id="${data.parent_id}"]`,
                 );
 
                 const repliesContainer = parent.querySelector(
-                    '[data-replies-container]'
+                    "[data-replies-container]",
                 );
 
                 let group = repliesContainer.querySelector(
-                    ':scope > [data-replies-group]'
+                    ":scope > [data-replies-group]",
                 );
 
                 let isNewGroup = false;
@@ -113,9 +110,7 @@ document.addEventListener('submit', async function (event) {
                     isNewGroup = true;
                 }
 
-                const repliesList = group.querySelector(
-                    '[data-replies-list]'
-                );
+                const repliesList = group.querySelector("[data-replies-list]");
 
                 repliesList.appendChild(template.content);
 
@@ -127,13 +122,11 @@ document.addEventListener('submit', async function (event) {
 
                 const replyCount = repliesList.children.length;
 
-                group.querySelector(
-                    '[data-replies-count]'
-                ).textContent = `${replyCount} Balasan`;
-
+                group.querySelector("[data-replies-count]").textContent =
+                    `${replyCount} Balasan`;
             } else {
                 const emptyMessage = commentsList.querySelector(
-                    '[data-empty-comments]'
+                    "[data-empty-comments]",
                 );
 
                 if (emptyMessage) {
@@ -143,14 +136,12 @@ document.addEventListener('submit', async function (event) {
                 commentsList.appendChild(template.content);
             }
 
-            const countElement = post.querySelector(
-                '[data-comment-count]'
-            );
+            const countElement = post.querySelector("[data-comment-count]");
 
             if (countElement) {
                 const currentCount = parseInt(
-                    countElement.dataset.count || '0',
-                    10
+                    countElement.dataset.count || "0",
+                    10,
                 );
 
                 const newCount = currentCount + 1;
@@ -161,7 +152,7 @@ document.addEventListener('submit', async function (event) {
 
             form.reset();
 
-            const details = form.closest('details');
+            const details = form.closest("details");
 
             if (details) {
                 details.open = false;
@@ -169,29 +160,26 @@ document.addEventListener('submit', async function (event) {
         }
 
         if (
-            form.dataset.commentAjax === 'update' ||
-            form.dataset.commentAjax === 'delete'
+            form.dataset.commentAjax === "update" ||
+            form.dataset.commentAjax === "delete"
         ) {
-            const comment = form.closest('[data-comment-id]');
+            const comment = form.closest("[data-comment-id]");
 
-            const template = document.createElement('template');
+            const template = document.createElement("template");
             template.innerHTML = data.html.trim();
 
             const newBody = template.content.querySelector(
-                '[data-comment-body]'
+                "[data-comment-body]",
             );
 
-            const oldBody = comment.querySelector(
-                '[data-comment-body]'
-            );
+            const oldBody = comment.querySelector("[data-comment-body]");
 
             if (newBody && oldBody) {
                 oldBody.replaceWith(newBody);
             }
         }
-
     } catch (error) {
-        alert('Gagal menghubungi server. Silakan coba lagi.');
+        alert("Gagal menghubungi server. Silakan coba lagi.");
         console.error(error);
     } finally {
         if (button) {
@@ -199,3 +187,25 @@ document.addEventListener('submit', async function (event) {
         }
     }
 });
+
+window.axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && [401, 419].includes(error.response.status)) {
+            // Tampilkan modal login atau konfirmasi reload
+            if (window.dispatchEvent) {
+                window.dispatchEvent(
+                    new CustomEvent("open-login-modal", {
+                        detail: {
+                            message:
+                                "Sesi Anda telah berakhir. Silakan login kembali.",
+                        },
+                    }),
+                );
+            } else {
+                window.location.href = "/login";
+            }
+        }
+        return Promise.reject(error);
+    },
+);

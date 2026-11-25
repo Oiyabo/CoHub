@@ -23,6 +23,7 @@ class UpdatePostRequest extends FormRequest
             'content' => ['required', 'string', 'max:500'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'remove_image' => ['nullable', 'boolean'],
+            'action' => ['nullable', 'in:publish'],
         ];
     }
 

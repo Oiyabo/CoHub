@@ -7,15 +7,12 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SavedPostController;
 use App\Http\Controllers\VoteController;
 use App\Models\Post;
+use App\Support\PostFeed;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\NotificationController;
 
 Route::get('/', function () {
-    $posts = Post::with([
-        'user',
-        'community',
-        'votes',
-        'comments.user',
-    ])->latest()->get();
+    $posts = PostFeed::get('untuk-anda');
 
     foreach ($posts as $post) {
         $post->buildCommentTree();
@@ -25,12 +22,7 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    $posts = Post::with([
-        'user',
-        'community',
-        'votes',
-        'comments.user',
-    ])->latest()->get();
+    $posts = PostFeed::get('untuk-anda');
 
     foreach ($posts as $post) {
         $post->buildCommentTree();
@@ -114,7 +106,17 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/c/{community:name}/join', [CommunityController::class, 'join'])->name('communities.join');
     Route::delete('/c/{community:name}/leave', [CommunityController::class, 'leave'])->name('communities.leave');
-});
+
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])
+        ->name('notifications.index');
+
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])
+        ->name('notifications.read-all');
+
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
+        ->name('notifications.read');
+    });
 
 require __DIR__ . '/posts.php';
 Route::get('/c/{community:name}', [CommunityController::class, 'show'])->name('communities.show');
