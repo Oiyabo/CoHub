@@ -15,6 +15,13 @@ class CommentController extends Controller
     {
         Gate::authorize('create', [Comment::class, $post]);
 
+        if ($post->community && $post->community->isClosed()) {
+            $msg = 'Komunitas ini telah ditutup oleh Administrator.';
+            return $request->expectsJson()
+                ? response()->json(['message' => $msg], 403)
+                : back()->with('error', $msg);
+        }
+
         $validated = $request->validate([
             'content' => ['required', 'string'],
         ]);
@@ -25,17 +32,15 @@ class CommentController extends Controller
             'content' => $validated['content'],
         ]);
 
-        $comment->load(['user', 'post.user']);
+        $comment->load(['user', 'post.user', 'votes']);
 
-            // Kirim notifikasi kepada pemilik postingan
-            $recipient = $comment->post->user;
+        $recipient = $comment->post->user;
 
-            // Jangan mengirim notifikasi kepada diri sendiri
-            if ($recipient && $recipient->id !== $request->user()->id) {
-                $recipient->notify(
-                    new NewCommentNotification($comment)
-                );
-            }
+        if ($recipient && $recipient->id !== $request->user()->id) {
+            $recipient->notify(
+                new NewCommentNotification($comment)
+            );
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -53,6 +58,13 @@ class CommentController extends Controller
     {
         Gate::authorize('create', [Comment::class, $comment->post]);
 
+        if ($comment->post->community && $comment->post->community->isClosed()) {
+            $msg = 'Komunitas ini telah ditutup oleh Administrator.';
+            return $request->expectsJson()
+                ? response()->json(['message' => $msg], 403)
+                : back()->with('error', $msg);
+        }
+
         $validated = $request->validate([
             'content' => ['required', 'string'],
         ]);
@@ -63,12 +75,10 @@ class CommentController extends Controller
             'content' => $validated['content'],
         ]);
 
-        $reply->load(['user', 'post']);
+        $reply->load(['user', 'post', 'votes']);
 
-        // Kirim notifikasi kepada pemilik komentar yang dibalas
         $recipient = $comment->user;
 
-        // Tidak mengirim notifikasi kepada diri sendiri
         if ($recipient && $recipient->id !== $request->user()->id) {
             $recipient->notify(
                 new CommentReplyNotification($reply)
@@ -100,7 +110,7 @@ class CommentController extends Controller
         ]);
 
         if ($request->expectsJson()) {
-            $comment->load(['user', 'post']);
+            $comment->load(['user', 'post', 'votes']);
 
             return response()->json([
                 'message' => 'Komentar berhasil diperbarui.',
@@ -121,7 +131,7 @@ class CommentController extends Controller
         $comment->save();
 
         if ($request->expectsJson()) {
-            $comment->load(['user', 'post']);
+            $comment->load(['user', 'post', 'votes']);
 
             return response()->json([
                 'message' => 'Komentar berhasil dihapus.',

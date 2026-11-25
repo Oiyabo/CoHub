@@ -1,8 +1,6 @@
 <x-app-layout>
     <x-slot name="sidebar">
-        <!-- SIDEBAR DETAIL KOMUNITAS -->
         <div class="space-y-4">
-            <!-- 1. Tentang Komunitas -->
             <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-xs">
                 <div class="flex items-center justify-between mb-2">
                     <h4 class="text-sm font-bold text-slate-800">Tentang komunitas</h4>
@@ -67,7 +65,6 @@
                 </div>
             </div>
 
-            <!-- 2. Aturan Komunitas -->
             <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-xs">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-sm font-bold text-slate-800">Aturan</h4>
@@ -110,7 +107,6 @@
                 </div>
             </div>
 
-            <!-- 3. Daftar Moderator -->
             <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-xs">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-sm font-bold text-slate-800">Moderator ({{ $moderators->count() }})</h4>
@@ -149,9 +145,7 @@
 
     <div x-data="{ currentTab: new URLSearchParams(window.location.search).get('tab') || 'diskusi' }" class="space-y-4">
 
-        <!-- BANNER & HEADER KOMUNITAS -->
         <div class="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden">
-            <!-- Area Banner Pastel dengan Lingkaran Dekoratif -->
             <div
                 class="h-44 bg-gradient-to-r from-blue-50 via-indigo-50/50 to-blue-100/60 relative overflow-hidden flex items-center justify-end px-12">
                 @if($community->banner_path)
@@ -165,7 +159,6 @@
 
             <div class="px-6 pb-6 pt-0 relative z-10">
                 <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                    <!-- Floating Avatar Logo & Info -->
                     <div>
                         <div
                             class="relative z-10 w-16 h-16 rounded-2xl bg-blue-100 text-blue-700 font-black text-lg flex items-center justify-center -mt-8 border-4 border-white shadow-md overflow-hidden">
@@ -181,8 +174,7 @@
                             c/{{ $community->name }}
                         </h1>
 
-                        <!-- Badges Statistik -->
-                        <div class="flex items-center gap-2 mt-2">
+                        <div class="flex items-center gap-2 mt-2 flex-wrap">
                             <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600">
                                 {{ number_format($community->members_count ?? $members->count()) }} anggota
                             </span>
@@ -202,19 +194,23 @@
                                     🌐 Publik
                                 </span>
                             @endif
+
+                            @if($community->is_closed)
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200">
+                                    Ditutup
+                                </span>
+                            @endif
                         </div>
                     </div>
 
-                    <!-- Tombol Aksi Kanan -->
                     <div class="flex items-center gap-2 shrink-0">
                         @auth
-                            @if($canViewContent)
+                            @if($canViewContent && !$community->is_closed)
                                 <button type="button"
                                     @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
                                     class="px-4 py-2 rounded-full border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 4v16m8-8H4"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                     </svg>
                                     <span>Buat Post</span>
                                 </button>
@@ -271,7 +267,6 @@
                     </div>
                 </div>
 
-                <!-- Sub-nav Tabs Interaktif -->
                 <div
                     class="flex items-center gap-2 mt-5 pt-4 border-t border-slate-100 text-xs font-semibold select-none">
                     <button type="button" @click="currentTab = 'diskusi'"
@@ -293,7 +288,13 @@
             </div>
         </div>
 
-        <!-- BANNER KHUSUS MODERATOR -->
+        @if($community->is_closed)
+            <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center gap-3 text-xs text-rose-800 font-medium shadow-2xs">
+                <span class="text-base">🔒</span>
+                <span>Komunitas ini sedang ditutup oleh Administrator. Diskusi baru dan komentar dinonaktifkan sementara.</span>
+            </div>
+        @endif
+
         @auth
             @if($community->isModerator(Auth::user()) || Auth::user()->isAdmin())
                 <div
@@ -303,34 +304,34 @@
                             d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
                         </path>
                     </svg>
-                    <span>Kamu moderator di komunitas ini. Pengaturan & moderasi dapat diakses melalui tombol Ruang
+                    <span>Kamu moderator di komunitas ini. Pengaturan &amp; moderasi dapat diakses melalui tombol Ruang
                         Moderasi.</span>
                 </div>
             @endif
         @endauth
 
-        <!-- ================= TAB 1: DISKUSI ================= -->
         <div x-show="currentTab === 'diskusi'" class="space-y-4">
             @if($canViewContent)
-                <!-- KOTAK INPUT CEPAT BUAT POST DI KOMUNITAS INI -->
                 @auth
-                    <div class="bg-white rounded-3xl p-4 border border-slate-100 shadow-xs flex items-center gap-3">
-                        <div
-                            class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
-                            {{ strtoupper(substr(Auth::user()->name ?? 'U', 0, 2)) }}
+                    @if(!$community->is_closed)
+                        <div class="bg-white rounded-3xl p-4 border border-slate-100 shadow-xs flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                {{ strtoupper(substr(Auth::user()->name ?? 'U', 0, 2)) }}
+                            </div>
+                            <button type="button" @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
+                                class="flex-1 bg-slate-50 hover:bg-slate-100 text-left text-xs text-slate-400 px-4 py-2.5 rounded-xl border border-slate-200 transition-colors cursor-pointer">
+                                Mulai obrolan di c/{{ $community->name }}...
+                            </button>
+                            <button type="button" @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 shrink-0">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                <span>Buat Post</span>
+                            </button>
                         </div>
-                        <button type="button" @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
-                            class="flex-1 bg-slate-50 hover:bg-slate-100 text-left text-xs text-slate-400 px-4 py-2.5 rounded-xl border border-slate-200 transition-colors cursor-pointer">
-                            Mulai obrolan di c/{{ $community->name }}...
-                        </button>
-                        <button type="button" @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
-                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 shrink-0">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                            </svg>
-                            <span>Buat Post</span>
-                        </button>
-                    </div>
+                    @endif
                 @endauth
 
                 @forelse($posts as $post)
@@ -359,16 +360,22 @@
 
                         @if($post->image_path)
                             <div class="mb-3 rounded-2xl overflow-hidden max-h-96 bg-slate-100 border border-slate-100">
-                                <img src="{{ Storage::url($post->image_path) }}" alt="{{ $post->title }}"
+                                <img src="{{ $post->image_url }}" alt="{{ $post->title }}"
                                     class="w-full object-cover">
                             </div>
                         @endif
 
+                        @php
+                            $userVoteOnPost = auth()->check()
+                                ? $post->votes->where('user_id', auth()->id())->first()?->vote_type
+                                : null;
+                        @endphp
                         <div class="flex items-center gap-4 pt-3 border-t border-slate-100 text-xs text-slate-500 font-medium">
-                            <span class="flex items-center gap-1">
-                                <span>▲</span>
-                                <span>{{ $post->score }} vote</span>
-                            </span>
+                            <x-vote-button
+                                :post-id="$post->id"
+                                :score="$post->score"
+                                :user-vote="$userVoteOnPost"
+                            />
                             <a href="{{ route('posts.show', $post) }}"
                                 class="hover:text-blue-600 transition-colors flex items-center gap-1">
                                 <span>💬</span>
@@ -388,15 +395,17 @@
 
                         <div class="mt-4">
                             @auth
-                                <button type="button"
-                                    @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
-                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition cursor-pointer">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
-                                        </path>
-                                    </svg>
-                                    <span>Buat Post Sekarang</span>
-                                </button>
+                                @if(!$community->is_closed)
+                                    <button type="button"
+                                        @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
+                                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition cursor-pointer">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                                            </path>
+                                        </svg>
+                                        <span>Buat Post Sekarang</span>
+                                    </button>
+                                @endif
                             @else
                                 <button type="button" @click="authModal = 'login'"
                                     class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition cursor-pointer">
@@ -411,7 +420,6 @@
                     {{ $posts->links() }}
                 </div>
             @else
-                <!-- TAMPILAN TERKUNCI: KOMUNITAS PRIVAT -->
                 <div class="bg-white rounded-3xl p-10 sm:p-14 border border-slate-200/80 shadow-xs text-center space-y-4">
                     <div class="w-16 h-16 rounded-3xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto text-3xl shadow-2xs">
                         🔒
@@ -439,7 +447,6 @@
             @endif
         </div>
 
-        <!-- ================= TAB 2: TENTANG ================= -->
         <div x-show="currentTab === 'tentang'" style="display: none;" class="space-y-4">
             <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-100 shadow-xs space-y-6">
                 <div>
@@ -541,7 +548,6 @@
             </div>
         </div>
 
-        <!-- ================= TAB 3: ANGGOTA ================= -->
         <div x-show="currentTab === 'anggota'" style="display: none;" class="space-y-4">
             <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-100 shadow-xs">
                 <div class="flex items-center justify-between mb-4">

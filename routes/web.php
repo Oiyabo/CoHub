@@ -75,7 +75,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/users', [AdminController::class, 'manageUsers'])->name('users.index');
     Route::post('/users/{user}/toggle-block', [AdminController::class, 'toggleBlockUser'])->name('users.toggle-block');
+    Route::post('/users/{user}/role', [AdminController::class, 'updateUserRole'])->name('users.update-role');
     Route::get('/communities', [AdminController::class, 'manageCommunities'])->name('communities.index');
+    Route::post('/communities/{community}/toggle-close', [AdminController::class, 'toggleCloseCommunity'])->name('communities.toggle-close');
     Route::delete('/communities/{community}', [AdminController::class, 'deleteCommunity'])->name('communities.destroy');
 });
 
@@ -107,7 +109,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/c/{community:name}/join', [CommunityController::class, 'join'])->name('communities.join');
     Route::delete('/c/{community:name}/leave', [CommunityController::class, 'leave'])->name('communities.leave');
 
-    // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])
         ->name('notifications.index');
 
@@ -116,7 +117,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
         ->name('notifications.read');
-    });
+});
 
 require __DIR__ . '/posts.php';
 Route::get('/c/{community:name}', [CommunityController::class, 'show'])->name('communities.show');
