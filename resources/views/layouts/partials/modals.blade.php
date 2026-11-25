@@ -1,7 +1,4 @@
 
-<!-- MODALS GLOBAL (Sesuai Desain PDF Halaman Buat Post & Buat Komunitas) -->
-
-<!-- 1. MODAL BUAT POSTINGAN (PDF 1 Halaman 6) -->
 <div x-show="createPostOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
     x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
     x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
@@ -11,7 +8,6 @@
     <div @click.away="createPostOpen = false"
         class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 transform transition-all relative my-auto max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] flex flex-col">
 
-        <!-- Header Modal -->
         <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
             <h3 class="text-base font-bold text-slate-800">Buat postingan</h3>
             <button @click="createPostOpen = false"
@@ -23,16 +19,14 @@
             </button>
         </div>
 
-        <!-- Form Buat Postingan -->
         <form action="{{ route('posts.store') }}" method="POST" enctype="multipart/form-data" class="mt-4 space-y-4 overflow-y-auto flex-1 pr-1 overscroll-contain"
               x-data="{ content: @js(old('content', '')), ...postImageUpload() }"
               x-init="{{ $errors->hasAny(['community_id', 'title', 'content', 'image']) ? 'createPostOpen = true' : '' }}">
             @csrf
 
             @php
-                // Hanya komunitas yang diikuti (Gabung / moderator / pembuat) yang boleh dipilih.
                 $myCommunities = auth()->check()
-                    ? auth()->user()->joinedCommunities()->orderBy('communities.name')->get()
+                    ? auth()->user()->joinedCommunities()->where('communities.is_closed', false)->orderBy('communities.name')->get()
                     : collect();
 
                 $joinedIds = $myCommunities->pluck('id')->map(fn ($id) => (string) $id)->values();
@@ -41,7 +35,6 @@
                     ->values();
             @endphp
 
-            <!-- Pilih Komunitas (Opsional) -->
             <div x-data="{
                     joinedIds: @js($joinedIds),
                     allCommunities: @js($communityList),
@@ -94,7 +87,6 @@
                 @enderror
             </div>
 
-            <!-- Judul -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Judul</label>
                 <input type="text" name="title" value="{{ old('title') }}" maxlength="255" required
@@ -105,7 +97,6 @@
                 @enderror
             </div>
 
-            <!-- Isi Diskusi -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Isi diskusi</label>
                 <textarea name="content" rows="4" maxlength="500" required x-model="content"
@@ -116,7 +107,6 @@
                 @enderror
             </div>
 
-            <!-- Lampiran Gambar (Drag & Drop + Preview) -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Gambar (Opsional)</label>
                 <input type="file" name="image" x-ref="file"
@@ -155,7 +145,6 @@
                 @enderror
             </div>
 
-            <!-- Footer Actions -->
             <div class="flex items-center justify-between pt-4 border-t border-slate-100 shrink-0">
                 <button type="submit"
                     formaction="{{ route('posts.drafts.store') }}"
@@ -179,7 +168,6 @@
 </div>
 
 
-<!-- 2. MODAL BUAT KOMUNITAS BARU -->
 <div x-show="createCommunityOpen" x-transition:enter="transition ease-out duration-200"
     x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
     x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
@@ -190,7 +178,6 @@
     <div @click.away="createCommunityOpen = false"
         class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 transform transition-all relative my-auto max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] flex flex-col">
 
-        <!-- Header Modal -->
         <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
             <h3 class="text-base font-bold text-slate-900">Buat komunitas baru</h3>
             <button @click="createCommunityOpen = false"
@@ -199,17 +186,14 @@
             </button>
         </div>
 
-        <!-- Form Buat Komunitas (Scrollable Body) -->
         <form action="{{ route('communities.store') }}" method="POST" enctype="multipart/form-data"
             class="mt-3 space-y-4 overflow-y-auto flex-1 pr-1 overscroll-contain">
             @csrf
 
-            <!-- IDENTITAS VISUAL: BANNER & AVATAR (TERKUNCI & TIDAK BISA MELEDAK) -->
             <div class="space-y-1.5">
                 <label class="block text-xs font-bold text-slate-800">Tampilan Visual (Opsional)</label>
 
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden shadow-2xs">
-                    <!-- Area Banner (Tinggi Terkunci 110px) -->
                     <div class="relative w-full bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 overflow-hidden"
                          style="height: 110px; min-height: 110px; max-height: 110px;"
                          @dragover.prevent="isDraggingBanner = true"
@@ -245,11 +229,9 @@
                         </div>
                     </div>
 
-                    <!-- Area Avatar & Info -->
                     <div class="px-4 pb-3 pt-0">
                         <div class="flex items-end justify-between gap-3 -mt-8 relative z-10">
                             <div class="flex items-end gap-3 min-w-0">
-                                <!-- Kotak Avatar (Terkunci 66px x 66px) -->
                                 <div class="relative rounded-2xl bg-white p-1 shadow-md border border-slate-200 shrink-0"
                                      style="width: 66px; height: 66px; min-width: 66px; min-height: 66px; max-width: 66px; max-height: 66px;">
 
@@ -319,11 +301,9 @@
                 @enderror
             </div>
 
-            <!-- Tipe Komunitas (Privasi) -->
             <div>
                 <label class="block text-xs font-bold text-slate-800 mb-1.5">Tipe Komunitas</label>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" x-data="{ isPrivate: '0' }">
-                    <!-- Publik -->
                     <label
                         :class="isPrivate === '0' ? 'border-blue-500 bg-blue-50/30 ring-1 ring-blue-500' : 'border-slate-200 bg-slate-50'"
                         class="flex items-start gap-2.5 p-3 border rounded-xl cursor-pointer transition">
@@ -337,7 +317,6 @@
                         </div>
                     </label>
 
-                    <!-- Privat -->
                     <label
                         :class="isPrivate === '1' ? 'border-blue-500 bg-blue-50/30 ring-1 ring-blue-500' : 'border-slate-200 bg-slate-50'"
                         class="flex items-start gap-2.5 p-3 border rounded-xl cursor-pointer transition">
@@ -353,7 +332,6 @@
                 </div>
             </div>
 
-            <!-- Nama Komunitas (Live AJAX Check) -->
             <div>
                 <label class="block text-xs font-bold text-slate-800 mb-1">Nama komunitas</label>
                 <div class="relative flex items-center">
@@ -386,8 +364,14 @@
                         </option>
                     @endforeach
                 </select>
+            </div>
 
-            <!-- Deskripsi -->
+            <div>
+                <label class="block text-xs font-bold text-slate-800 mb-1">Deskripsi (opsional)</label>
+                <textarea name="description" rows="2"
+                    placeholder="Diskusi Laravel, Eloquent, dan arsitektur aplikasi web modern."
+                    class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors resize-none"></textarea>
+            </div>
             <div>
                 <label class="block text-xs font-bold text-slate-800 mb-1">Deskripsi (opsional)</label>
                 <textarea name="description" rows="2"
@@ -395,7 +379,6 @@
                     class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors resize-none"></textarea>
             </div>
 
-            <!-- Footer Actions -->
             <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 shrink-0">
                 <button type="button" @click="createCommunityOpen = false"
                     class="px-5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 rounded-full bg-slate-100 hover:bg-slate-200 transition cursor-pointer">
@@ -412,7 +395,6 @@
 </div>
 
 
-<!-- Pratinjau & validasi gambar untuk form buat postingan -->
 <script>
     function postImageUpload() {
         const MAX_BYTES = 2 * 1024 * 1024;
@@ -482,14 +464,12 @@
             statusText: '',
             bannerExpanded: false,
 
-            // Avatar
             isDraggingAvatar: false,
             avatarPreview: null,
             avatarFileName: '',
             avatarFileSize: '',
             avatarError: null,
 
-            // Banner
             isDraggingBanner: false,
             bannerPreview: null,
             bannerFileName: '',
@@ -519,7 +499,6 @@
                 return { valid: true };
             },
 
-            // Avatar
             handleAvatarDrop(event) {
                 this.isDraggingAvatar = false;
                 const files = event.dataTransfer?.files;
@@ -573,7 +552,6 @@
                 if (this.$refs.modalAvatarInput) this.$refs.modalAvatarInput.value = '';
             },
 
-            // Banner
             handleBannerDrop(event) {
                 this.isDraggingBanner = false;
                 const files = event.dataTransfer?.files;
@@ -630,7 +608,6 @@
     }
 </script>
 
-<!-- 3. MODALS AUTH (Login, Register, Reset Password Sesuai Desain) -->
 @guest
     @include('auth.modals')
 @endguest

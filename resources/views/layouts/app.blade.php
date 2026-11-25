@@ -8,13 +8,11 @@
 
     <title>{{ $title ?? config('app.name', 'CoHub') }} — Forum Diskusi Komunitas</title>
 
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
 
-    <!-- Scripts & Styles via Vite -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
@@ -70,14 +68,11 @@
     @keydown.escape.window="authModal = null"
     class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
 
-    <!-- 1. TOP NAVBAR BERSAMA -->
     @include('layouts.navigation')
 
-    <!-- 2. MAIN CONTAINER -->
     <div class="flex-1 max-w-[1300px] w-full mx-auto px-4 py-6">
         <div class="flex items-start gap-5">
 
-            <!-- A. LEFT COMMUNITY RAIL (DINAMIS DARI DATABASE SEEDER) -->
             <aside class="hidden sm:flex flex-col items-center gap-2.5 w-12 shrink-0 sticky top-20 select-none py-1">
                 @foreach($globalCommunities as $comm)
                     @php
@@ -106,7 +101,6 @@
                     </div>
                 @endforeach
 
-                <!-- Tombol Tambah Komunitas (+) -->
                 <button type="button" @click="$dispatch('open-create-community')" title="Buat Komunitas Baru"
                     class="w-10 h-10 rounded-2xl bg-white hover:bg-blue-50 border border-dashed border-slate-300 text-slate-400 hover:text-blue-600 flex items-center justify-center transition-colors cursor-pointer">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,18 +109,15 @@
                 </button>
             </aside>
 
-            <!-- B. KONTEN TENGAH & SIDEBAR KANAN -->
             <div
                 class="flex-1 min-w-0 grid grid-cols-1 {{ (isset($noSidebar) && $noSidebar) || View::hasSection('no-sidebar') ? '' : 'lg:grid-cols-12' }} gap-5 items-start">
 
-                <!-- MAIN CONTENT (Slot) -->
                 <main
                     class="{{ (isset($noSidebar) && $noSidebar) || View::hasSection('no-sidebar') ? 'w-full' : 'col-span-1 lg:col-span-8' }} min-w-0">
                     {{ $slot ?? '' }}
                     @yield('content')
                 </main>
 
-                <!-- RIGHT SIDEBAR -->
                 @if(!((isset($noSidebar) && $noSidebar) || View::hasSection('no-sidebar')))
                     <div class="col-span-1 lg:col-span-4 sticky top-20 hidden lg:block">
                         @if(isset($sidebar))
@@ -144,7 +135,6 @@
         </div>
     </div>
 
-    <!-- 3. GUEST BOTTOM BANNER -->
     @guest
         <div class="sticky bottom-4 z-40 max-w-xl mx-auto px-4 w-full">
             <div
@@ -167,7 +157,6 @@
         </div>
     @endguest
 
-    <!-- 4. MODALS REUSABLE (Alpine.js) -->
     @include('layouts.partials.modals')
 
 </body>

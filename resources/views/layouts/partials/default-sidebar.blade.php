@@ -1,8 +1,6 @@
 
-<!-- DEFAULT RIGHT SIDEBAR -->
 <aside class="space-y-4">
 
-    <!-- 1. Tombol Buat Komunitas -->
     <div class="bg-blue-600 rounded-2xl p-5 text-white shadow-xs">
         <h3 class="text-sm font-bold">Ruang Komunitas Baru</h3>
         <p class="text-xs text-blue-100 mt-1">
@@ -14,7 +12,6 @@
         </button>
     </div>
 
-    <!-- 2. Daftar Komunitas Pilihan -->
     <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-xs">
         <div class="flex items-center justify-between mb-3.5">
             <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">
@@ -77,7 +74,6 @@
         </div>
     </div>
 
-    <!-- 3. Info Singkat Project -->
     <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs text-xs text-slate-500 space-y-1.5">
         <p class="font-bold text-slate-700">CoHub (Kelompok 6)</p>
         <p class="text-[11px] text-slate-400">

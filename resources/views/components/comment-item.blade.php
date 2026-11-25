@@ -1,5 +1,11 @@
 @php
     $depth = $depth ?? 0;
+    $commentScore = $comment->score;
+    $userCommentVote = auth()->check()
+        ? ($comment->relationLoaded('votes')
+            ? $comment->votes->where('user_id', auth()->id())->first()?->vote_type
+            : $comment->votes()->where('user_id', auth()->id())->value('vote_type'))
+        : null;
 @endphp
 
 <div id="comment-{{ $comment->id }}"
@@ -46,9 +52,15 @@
                 {{ $comment->content }}
             </p>
 
-            @auth
-                <div class="flex items-center gap-3 mt-2 flex-wrap">
+            <div class="flex items-center gap-3 mt-2 flex-wrap">
+                <x-vote-button
+                    :comment-id="$comment->id"
+                    :score="$commentScore"
+                    :user-vote="$userCommentVote"
+                    size="sm"
+                />
 
+                @auth
                     @can('update', $comment)
                         <details>
                             <summary class="text-[11px] text-amber-600 font-semibold cursor-pointer">
@@ -90,9 +102,10 @@
                             </button>
                         </form>
                     @endcan
+                @endauth
+            </div>
 
-                </div>
-
+            @auth
                 <details class="mt-2">
                     <summary class="text-[11px] text-blue-600 font-semibold cursor-pointer">
                         Balas

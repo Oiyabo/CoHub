@@ -1,9 +1,7 @@
 <x-app-layout>
-    {{-- data-post-id dipakai script komentar AJAX (resources/js/app.js) untuk menemukan kartu post --}}
     <div class="space-y-4" data-post-id="{{ $post->id }}">
         <x-flash-status />
 
-        <!-- Header halaman -->
         <div class="flex items-center gap-3">
             <a href="{{ Auth::check() ? route('dashboard') : url('/') }}" aria-label="Kembali"
                class="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-800 transition-colors">
@@ -23,10 +21,8 @@
             </div>
         </div>
 
-        <!-- Isi postingan lengkap -->
         <x-post-card :post="$post" :detail="true" />
 
-        <!-- Komentar bertingkat -->
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs">
             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
                 Komentar:

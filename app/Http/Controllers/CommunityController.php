@@ -94,11 +94,10 @@ class CommunityController extends Controller
         $canViewContent = !$community->is_private || ($user && ($user->isAdmin() || $isMember));
 
         $posts = $canViewContent
-            ? $community->posts()->with(['user', 'comments.user', 'votes'])->latest()->paginate(10)
+            ? $community->posts()->where('status', 'published')->with(['user', 'comments.user', 'comments.votes', 'votes'])->latest()->paginate(10)
             : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 
         $moderators = $community->moderators()->get();
-        // $isMember = $community->isMember(Auth::user());
         $members = $community->members()->withPivot('role')->latest('community_members.created_at')->get();
 
         $rules = $community->rules ?? [];
@@ -110,7 +109,6 @@ class CommunityController extends Controller
             'isMember',
             'canViewContent',
             'moderators',
-            // 'isMember',
             'members',
             'rules',
             'about'
@@ -162,8 +160,6 @@ class CommunityController extends Controller
         return redirect()->route('communities.index')
             ->with('success', "Komunitas c/{$name} berhasil dihapus oleh Administrator.");
     }
-
-    // AJAX
 
     public function checkName(Request $request): JsonResponse
     {
@@ -250,6 +246,10 @@ class CommunityController extends Controller
 
     public function join(Community $community): RedirectResponse
     {
+        if ($community->isClosed()) {
+            return back()->with('error', "Komunitas c/{$community->name} sedang ditutup oleh Administrator.");
+        }
+
         if ($community->is_private && !Auth::user()->isAdmin() && $community->created_by !== Auth::id()) {
             return back()->with('error', 'Komunitas ini bersifat privat. Akses masuk hanya melalui undangan atau persetujuan pengelola.');
         }
@@ -276,7 +276,6 @@ class CommunityController extends Controller
     {
         Gate::authorize('manageRules', $community);
 
-        // Langsung simpan $validated ke kolom about:
         $community->update(['about' => $request->validated()]);
 
         return redirect()->route('communities.edit', ['community' => $community->name, 'tab' => 'tentang'])

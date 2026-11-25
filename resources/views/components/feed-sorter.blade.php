@@ -1,14 +1,3 @@
-{{--
-    Tab urutan feed (Untuk Anda / Terbaru / Teratas) untuk kartu yang SUDAH ada di halaman.
-
-    Cara kerja: klik tab -> minta urutan ID postingan ke route posts.feed.order (AJAX, JSON),
-    lalu kartu <article> yang sudah ada disusun ulang di tempat. Tidak ada reload halaman
-    dan tidak ada markup kartu yang diubah, jadi aman dipasang di halaman bersama.
-
-    Pemakaian: letakkan satu baris  <x-feed-sorter />  tepat di atas daftar kartu.
-    Syarat: kartu <article> adalah anak langsung dari pembungkus yang sama dengan komponen ini,
-    dan tiap kartu punya tautan ke /posts/{id}.
---}}
 <script>
     window.feedSorter = function () {
         return {
