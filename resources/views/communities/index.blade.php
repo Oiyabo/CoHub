@@ -69,24 +69,27 @@
                     <input type="text" name="search" value="{{ $search }}"
                         placeholder="Cari komunitas, topik, atau kata kunci"
                         class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200/80 rounded-2xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 shadow-2xs transition-colors">
-                </div>
+                    <input type="hidden" name="category" value="{{ $category }}">
+                    </div>
             </form>
 
-            <!-- Kategori Filter Pills -->
+
+            <!-- KATEGORI FILTER PILLS -->
             <div class="flex items-center gap-2 mt-4 overflow-x-auto pb-1 text-xs font-semibold select-none">
-                <span class="px-4 py-1.5 rounded-full bg-blue-600 text-white cursor-pointer shadow-xs">Semua</span>
-                <span
-                    class="px-4 py-1.5 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 cursor-pointer transition">Teknologi</span>
-                <span
-                    class="px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 cursor-pointer transition">Akademik</span>
-                <span
-                    class="px-4 py-1.5 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-100 cursor-pointer transition">Kampus</span>
-                <span
-                    class="px-4 py-1.5 rounded-full bg-purple-50 text-purple-600 hover:bg-purple-100 cursor-pointer transition">Data</span>
-                <span
-                    class="px-4 py-1.5 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer transition">Karier</span>
+                @foreach (['Semua', 'Teknologi', 'Akademik', 'Kampus', 'Data', 'Karier'] as $item)
+                    <a href="{{ route('communities.index', [
+                        'search' => $search,
+                        'category' => $item === 'Semua' ? null : $item,
+                    ]) }}"
+                        class="px-4 py-1.5 rounded-full whitespace-nowrap transition
+                        {{ ($item === 'Semua' && !$category) || $category === $item
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-blue-50 text-blue-600 hover:bg-blue-100' }}">
+                        {{ $item }}
+                    </a>
+                @endforeach
             </div>
-        </div>
+
 
         <!-- GRID DAFTAR KOMUNITAS (2 KOLOM SESUAI GAMBAR) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

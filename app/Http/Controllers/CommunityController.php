@@ -20,22 +20,40 @@ use Illuminate\View\View;
 
 class CommunityController extends Controller
 {
-    public function index(Request $request): View
-    {
-        $search = $request->query('search');
-        $communities = Community::with('creator')
-            ->withCount(['posts', 'moderators'])
-            ->when($search, function ($query, $search) {
-                return $query->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('description', 'ilike', "%{$search}%");
-            })
-            ->latest()
-            ->paginate(9)
-            ->withQueryString();
+   public function index(Request $request): View
+{
+    $search = $request->query('search');
+    $category = $request->query('category');
 
-        return view('communities.index', compact('communities', 'search'));
+    $allowedCategories = [
+        'Teknologi',
+        'Akademik',
+        'Kampus',
+        'Data',
+        'Karier',
+    ];
+
+    if (!in_array($category, $allowedCategories, true)) {
+        $category = null;
     }
 
+    $communities = Community::with('creator')
+        ->withCount(['posts', 'moderators'])
+        ->when($category, function ($query, $category) {
+            $query->where('category', $category);
+        })
+        ->when($search, function ($query, $search) {
+            $query->where(function ($subQuery) use ($search) {
+                $subQuery->where('name', 'ilike', "%{$search}%")
+                    ->orWhere('description', 'ilike', "%{$search}%");
+            });
+        })
+        ->latest()
+        ->paginate(9)
+        ->withQueryString();
+
+    return view('communities.index', compact('communities', 'search', 'category'));
+}
     public function create(): View
     {
         return view('communities.create');
@@ -55,6 +73,7 @@ class CommunityController extends Controller
         $community = Community::create([
             'name' => strtolower($validated['name']),
             'description' => $validated['description'] ?? null,
+            'category' => $validated['category'] ?? null,
             'is_private' => $request->boolean('is_private'),
             'banner_path' => $bannerPath,
             'avatar_path' => $avatarPath,
@@ -122,6 +141,7 @@ class CommunityController extends Controller
         }
         $community->name = strtolower($validated['name']);
         $community->description = $validated['description'] ?? null;
+        $community->category = $validated['category'] ?? null;
         $community->is_private = $request->boolean('is_private');
         $community->save();
 
