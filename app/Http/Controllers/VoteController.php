@@ -37,11 +37,9 @@ class VoteController extends Controller
 
         if ($existingVote) {
             if ($existingVote->vote_type === $voteType) {
-                // Vote dibatalkan, tidak mengirim notifikasi.
                 $existingVote->delete();
                 $userVote = null;
             } else {
-                // Vote berubah dari upvote ke downvote atau sebaliknya.
                 $existingVote->update([
                     'vote_type' => $voteType,
                 ]);
@@ -50,7 +48,6 @@ class VoteController extends Controller
                 $shouldNotify = true;
             }
         } else {
-            // Vote baru.
             Vote::create([
                 'user_id' => $user->id,
                 'post_id' => $post->id,
@@ -61,7 +58,6 @@ class VoteController extends Controller
             $shouldNotify = true;
         }
 
-        // Kirim notifikasi kepada pemilik postingan.
         if ($shouldNotify) {
             $post->load('user');
 
@@ -120,11 +116,9 @@ class VoteController extends Controller
 
         if ($existingVote) {
             if ($existingVote->vote_type === $voteType) {
-                // Vote dibatalkan, tidak mengirim notifikasi.
                 $existingVote->delete();
                 $userVote = null;
             } else {
-                // Vote berubah.
                 $existingVote->update([
                     'vote_type' => $voteType,
                 ]);
@@ -133,7 +127,6 @@ class VoteController extends Controller
                 $shouldNotify = true;
             }
         } else {
-            // Vote baru.
             CommentVote::create([
                 'user_id' => $user->id,
                 'comment_id' => $comment->id,
@@ -144,7 +137,6 @@ class VoteController extends Controller
             $shouldNotify = true;
         }
 
-        // Kirim notifikasi kepada pemilik komentar.
         if ($shouldNotify) {
             $comment->load(['user', 'post']);
 
