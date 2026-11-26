@@ -57,9 +57,20 @@ class SearchController extends Controller
             ->with('creator:id,name,username');
 
         if ($term !== '') {
-            $communitiesQuery->where(function (Builder $query) use ($like) {
-                $query->whereRaw("LOWER(name) LIKE ?", [$like])
-                    ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like]);
+            $communityTerm = mb_strtolower(
+                trim(preg_replace('/\s+/', ' ', str_replace('-', ' ', $keyword)))
+            );
+
+            $communityLike = '%' . $communityTerm . '%';
+
+            $communitiesQuery->where(function (Builder $query) use ($communityLike) {
+                $query->whereRaw(
+                    "REPLACE(LOWER(name), '-', ' ') LIKE ?",
+                    [$communityLike]
+                )->orWhereRaw(
+                    "REPLACE(LOWER(COALESCE(description, '')), '-', ' ') LIKE ?",
+                    [$communityLike]
+                );
             });
         } else {
             $communitiesQuery->whereRaw('1 = 0');
