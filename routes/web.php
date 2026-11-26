@@ -8,28 +8,31 @@ use App\Http\Controllers\SavedPostController;
 use App\Http\Controllers\VoteController;
 use App\Models\Post;
 use App\Support\PostFeed;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SearchController;
 
-Route::get('/', function () {
-    $posts = PostFeed::get('untuk-anda');
+Route::get('/', function (Request $request) {
+    $tab = PostFeed::normalizeTab($request->query('tab'));
+    $posts = PostFeed::get($tab);
 
     foreach ($posts as $post) {
         $post->buildCommentTree();
     }
 
-    return view('welcome', compact('posts'));
+    return view('welcome', compact('posts', 'tab'));
 });
 
-Route::get('/dashboard', function () {
-    $posts = PostFeed::get('untuk-anda');
+Route::get('/dashboard', function (Request $request) {
+    $tab = PostFeed::normalizeTab($request->query('tab'));
+    $posts = PostFeed::get($tab);
 
     foreach ($posts as $post) {
         $post->buildCommentTree();
     }
 
-    return view('dashboard', compact('posts'));
+    return view('dashboard', compact('posts', 'tab'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/@{user:username}', [ProfileController::class, 'show'])
