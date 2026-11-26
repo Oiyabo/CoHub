@@ -21,6 +21,8 @@ class User extends Authenticatable
         'password',
         'role',
         'is_blocked',
+        'blocked_reason',
+        'posts_hidden',
     ];
 
     protected $hidden = [
@@ -33,6 +35,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
+            'is_blocked'        => 'boolean',
+            'posts_hidden'      => 'boolean',
         ];
     }
 
@@ -122,6 +126,6 @@ class User extends Authenticatable
 
     public function isBlocked(): bool
     {
-        return (bool) $this->is_blocked;
+        return (bool) ($this->is_blocked ?? false);
     }
 }

@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\CommunityMember;
 use App\Notifications\ModerationNotification;
 use App\Services\ImageService;
+use App\Support\SafeSchema;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -101,7 +102,12 @@ class CommunityController extends Controller
         $canViewContent = !$community->is_private || ($user && ($user->isAdmin() || $isMember));
 
         $posts = $canViewContent
-            ? $community->posts()->where('status', 'published')->with(['user', 'comments.user', 'comments.votes', 'votes'])->latest()->paginate(10)
+            ? $community->posts()
+                ->where('status', 'published')
+                ->when(SafeSchema::hasColumn('users', 'posts_hidden'), fn ($q) => $q->whereHas('user', fn ($u) => $u->where('posts_hidden', false)))
+                ->with(['user', 'comments.user', 'comments.votes', 'votes'])
+                ->latest()
+                ->paginate(10)
             : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 
         $moderators = $community->moderators()->get();

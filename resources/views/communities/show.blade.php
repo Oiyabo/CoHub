@@ -195,7 +195,7 @@
                                 </span>
                             @endif
 
-                            @if($community->is_closed)
+                            @if($community->isClosed())
                                 <span class="px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200">
                                     Ditutup
                                 </span>
@@ -205,7 +205,7 @@
 
                     <div class="flex items-center gap-2 shrink-0">
                         @auth
-                            @if($canViewContent && !$community->is_closed)
+                            @if($canViewContent && !$community->isClosed())
                                 <button type="button"
                                     @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
                                     class="px-4 py-2 rounded-full border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer">
@@ -288,7 +288,7 @@
             </div>
         </div>
 
-        @if($community->is_closed)
+        @if($community->isClosed())
             <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center gap-3 text-xs text-rose-800 font-medium shadow-2xs">
                 <span class="text-base">🔒</span>
                 <span>Komunitas ini sedang ditutup oleh Administrator. Diskusi baru dan komentar dinonaktifkan sementara.</span>
@@ -313,7 +313,7 @@
         <div x-show="currentTab === 'diskusi'" class="space-y-4">
             @if($canViewContent)
                 @auth
-                    @if(!$community->is_closed)
+                    @if(!$community->isClosed())
                         <div class="bg-white rounded-3xl p-4 border border-slate-100 shadow-xs flex items-center gap-3">
                             <div
                                 class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
@@ -395,7 +395,7 @@
 
                         <div class="mt-4">
                             @auth
-                                @if(!$community->is_closed)
+                                @if(!$community->isClosed())
                                     <button type="button"
                                         @click="$dispatch('open-create-post', { communityId: '{{ $community->id }}' })"
                                         class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition cursor-pointer">
