@@ -130,9 +130,44 @@
                 </div>
             </div>
 
+            @auth
+                <form action="{{ route('search.index') }}" method="GET"
+                    class="hidden xl:flex flex-1 max-w-sm mx-4">
+
+                    <div class="relative w-full">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle cx="11" cy="11" r="7" stroke-width="2"></circle>
+                            <path d="m16 16 4 4" stroke-width="2"
+                                stroke-linecap="round"></path>
+                        </svg>
+
+                        <input type="search"
+                            name="q"
+                            value="{{ request()->routeIs('search.index') ? request('q') : '' }}"
+                            placeholder="Cari postingan, komunitas, pengguna..."
+                            maxlength="100"
+                            class="w-full pl-9 pr-4 py-2.5 bg-slate-100 border border-transparent rounded-xl text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition-colors">
+                    </div>
+                </form>
+            @endauth
+
             <div class="ml-auto flex items-center justify-end gap-2 sm:gap-3 shrink-0">
 
                 @auth
+                    <a href="{{ route('search.index') }}"
+                        title="Pencarian Global"
+                        aria-label="Pencarian Global"
+                        class="xl:hidden w-9 h-9 flex items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 hover:text-blue-600 transition-colors">
+
+                        <svg class="w-5 h-5" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <circle cx="11" cy="11" r="7" stroke-width="2"></circle>
+                            <path d="m16 16 4 4" stroke-width="2"
+                                stroke-linecap="round"></path>
+                        </svg>
+                    </a>
+
 
                     <button type="button"
                         @click="$dispatch('open-create-post')"

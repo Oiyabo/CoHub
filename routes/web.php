@@ -10,6 +10,7 @@ use App\Models\Post;
 use App\Support\PostFeed;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SearchController;
 
 Route::get('/', function () {
     $posts = PostFeed::get('untuk-anda');
@@ -35,6 +36,9 @@ Route::get('/@{user:username}', [ProfileController::class, 'show'])
     ->name('profile.show');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/search', [SearchController::class, 'index'])
+    ->name('search.index');
+    
     Route::get('/profile', [ProfileController::class, 'edit'])
         ->name('profile.edit');
 
