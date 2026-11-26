@@ -6,6 +6,7 @@ use App\Models\Comment;
 use App\Models\Community;
 use App\Models\Post;
 use App\Models\User;
+use App\Notifications\ModerationNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -90,6 +91,13 @@ class AdminController extends Controller
 
         $user->update(['is_blocked' => ! $user->is_blocked]);
 
+        $action = $user->is_blocked ? 'block_user' : 'unblock_user';
+        ModerationNotification::send(
+            actor: Auth::user(),
+            actionType: $action,
+            targetUser: $user
+        );
+
         return response()->json([
             'success'    => true,
             'is_blocked' => $user->is_blocked,
@@ -145,6 +153,13 @@ class AdminController extends Controller
 
         $user->update(['role' => $newRole]);
 
+        ModerationNotification::send(
+            actor: Auth::user(),
+            actionType: 'update_role',
+            targetUser: $user,
+            extra: ['new_role' => $newRole]
+        );
+
         return response()->json([
             'success' => true,
             'role'    => $user->role,
@@ -172,6 +187,13 @@ class AdminController extends Controller
     public function toggleCloseCommunity(Community $community)
     {
         $community->update(['is_closed' => ! $community->is_closed]);
+
+        $action = $community->is_closed ? 'close_community' : 'reopen_community';
+        ModerationNotification::send(
+            actor: Auth::user(),
+            actionType: $action,
+            community: $community
+        );
 
         return response()->json([
             'success'   => true,

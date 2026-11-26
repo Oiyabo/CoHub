@@ -361,4 +361,119 @@ class PostTest extends TestCase
             array_map('intval', $response->json('ids'))
         );
     }
+
+    public function test_latest_tab_orders_posts_by_created_at(): void
+    {
+        $author = User::factory()->create();
+        $community = $this->makeCommunity($author);
+
+        $olderPost = $this->makePost($author, $community, 'Post Lawas');
+        $olderPost->created_at = now()->subHours(2);
+        $olderPost->save();
+
+        $newerPost = $this->makePost($author, $community, 'Post Baru');
+        $newerPost->created_at = now()->subMinutes(10);
+        $newerPost->save();
+
+        $this->get(route('posts.feed', ['tab' => 'terbaru']))
+            ->assertOk()
+            ->assertSeeInOrder(['Post Baru', 'Post Lawas']);
+
+        $response = $this->getJson(route('posts.feed.order', ['tab' => 'terbaru']))->assertOk();
+        $this->assertSame([$newerPost->id, $olderPost->id], array_map('intval', $response->json('ids')));
+    }
+
+    public function test_for_you_tab_prioritizes_joined_community_posts_for_authenticated_users(): void
+    {
+        $author = User::factory()->create();
+        $member = User::factory()->create();
+
+        $joinedComm = $this->makeCommunity($author, 'komunitas-diikuti-user');
+        $otherComm = $this->makeCommunity($author, 'komunitas-lain-populer');
+
+        $joinedComm->members()->attach($member->id, ['role' => 'member']);
+
+        // Post di komunitas yang diikuti
+        $joinedPost = $this->makePost($author, $joinedComm, 'Post Komunitas Tergabung');
+
+        // Post di komunitas lain dengan vote tinggi
+        $otherPost = $this->makePost($author, $otherComm, 'Post Populer Komunitas Lain');
+        $voters = User::factory()->count(5)->create();
+        foreach ($voters as $voter) {
+            Vote::create(['user_id' => $voter->id, 'post_id' => $otherPost->id, 'vote_type' => 'upvote']);
+        }
+
+        $response = $this->actingAs($member)->getJson(route('posts.feed.order', ['tab' => 'untuk-anda']))->assertOk();
+
+        // joinedPost harus di depan otherPost bagi user yang bergabung
+        $ids = array_map('intval', $response->json('ids'));
+        $this->assertSame($joinedPost->id, $ids[0]);
+    }
+
+    public function test_for_you_tab_orders_by_engagement_for_guests(): void
+    {
+        $author = User::factory()->create();
+        $voters = User::factory()->count(4)->create();
+        $community = $this->makeCommunity($author);
+
+        $lowEngage = $this->makePost($author, $community, 'Post Engagemen Rendah');
+        $highEngage = $this->makePost($author, $community, 'Post Engagemen Tinggi');
+
+        foreach ($voters as $voter) {
+            Vote::create(['user_id' => $voter->id, 'post_id' => $highEngage->id, 'vote_type' => 'upvote']);
+        }
+
+        $response = $this->getJson(route('posts.feed.order', ['tab' => 'untuk-anda']))->assertOk();
+
+        $ids = array_map('intval', $response->json('ids'));
+        $this->assertSame($highEngage->id, $ids[0]);
+        $this->assertSame($lowEngage->id, $ids[1]);
+    }
+
+    public function test_dashboard_and_welcome_pages_respect_tab_filter(): void
+    {
+        $user = User::factory()->create();
+
+        // Cek dashboard dengan berbagai filter tab
+        $this->actingAs($user)->get(route('dashboard', ['tab' => 'terbaru']))->assertOk();
+        $this->actingAs($user)->get(route('dashboard', ['tab' => 'teratas']))->assertOk();
+        $this->actingAs($user)->get(route('dashboard', ['tab' => 'untuk-anda']))->assertOk();
+
+        // Cek halaman beranda umum
+        $this->get('/?tab=terbaru')->assertOk();
+        $this->get('/?tab=teratas')->assertOk();
+        $this->get('/?tab=untuk-anda')->assertOk();
+    }
+
+    public function test_deleted_comments_are_not_counted_in_engagement_or_comment_count(): void
+    {
+        $author = User::factory()->create();
+        $commenter = User::factory()->create();
+        $community = $this->makeCommunity($author);
+
+        $post = $this->makePost($author, $community, 'Post Komentar Dihapus');
+
+        // Komentar aktif
+        \App\Models\Comment::create([
+            'user_id' => $commenter->id,
+            'post_id' => $post->id,
+            'content' => 'Komentar aktif',
+        ]);
+
+        // Komentar terhapus (deleted_at terisi)
+        $deletedComment = \App\Models\Comment::create([
+            'user_id' => $commenter->id,
+            'post_id' => $post->id,
+            'content' => '',
+        ]);
+        $deletedComment->deleted_at = now();
+        $deletedComment->save();
+
+        $feedPosts = \App\Support\PostFeed::get('untuk-anda');
+        $foundPost = $feedPosts->firstWhere('id', $post->id);
+
+        $this->assertNotNull($foundPost);
+        // Jumlah komentar yang dihitung harus 1, bukan 2
+        $this->assertSame(1, (int) $foundPost->comments_count);
+    }
 }

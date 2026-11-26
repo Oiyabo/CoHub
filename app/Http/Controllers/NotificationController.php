@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class NotificationController extends Controller
@@ -14,7 +15,8 @@ class NotificationController extends Controller
        $filter = $request->query('filter', 'all');
 
         $canSeeModeration = $request->user()->isAdmin()
-            || $request->user()->moderatedCommunities()->exists();
+            || $request->user()->moderatedCommunities()->exists()
+            || $request->user()->createdCommunities()->exists();
 
         $allowedFilters = ['all', 'comment', 'reply', 'vote', 'moderation'];
 
@@ -27,18 +29,30 @@ class NotificationController extends Controller
         }
 
         $query = $request->user()->notifications()->latest();
+        $isPgsql = DB::connection()->getDriverName() === 'pgsql';
 
         if (!$canSeeModeration) {
-            $query->whereRaw(
-                "(data::jsonb ->> 'category') IS DISTINCT FROM 'moderation'"
-            );
+            if ($isPgsql) {
+                $query->whereRaw(
+                    "(data::jsonb ->> 'category') IS DISTINCT FROM 'moderation'"
+                );
+            } else {
+                $query->where(function ($q) {
+                    $q->whereNull('data->category')
+                        ->orWhere('data->category', '!=', 'moderation');
+                });
+            }
         }
 
         if ($filter !== 'all') {
-            $query->whereRaw(
-                "(data::jsonb ->> 'category') = ?",
-                [$filter]
-            );
+            if ($isPgsql) {
+                $query->whereRaw(
+                    "(data::jsonb ->> 'category') = ?",
+                    [$filter]
+                );
+            } else {
+                $query->where('data->category', $filter);
+            }
         }
 
         $notifications = $query
@@ -46,9 +60,20 @@ class NotificationController extends Controller
             ->withQueryString();
 
         // Menghitung notifikasi yang belum dibaca
-        $unreadCount = $request->user()
-            ->unreadNotifications()
-            ->count();
+        $unreadQuery = $request->user()->unreadNotifications();
+        if (!$canSeeModeration) {
+            if ($isPgsql) {
+                $unreadQuery->whereRaw(
+                    "(data::jsonb ->> 'category') IS DISTINCT FROM 'moderation'"
+                );
+            } else {
+                $unreadQuery->where(function ($q) {
+                    $q->whereNull('data->category')
+                        ->orWhere('data->category', '!=', 'moderation');
+                });
+            }
+        }
+        $unreadCount = $unreadQuery->count();
 
         return view('notifications.index', compact(
             'notifications',

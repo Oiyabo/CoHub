@@ -85,6 +85,10 @@ class User extends Authenticatable
         if ($communityId === null)
             return false;
 
+        if ($this->createdCommunities()->where('id', $communityId)->exists()) {
+            return true;
+        }
+
         return $this->joinedCommunities()
             ->where('community_id', $communityId)
             ->wherePivot('role', 'admin')
@@ -95,6 +99,10 @@ class User extends Authenticatable
     {
         if ($communityId === null) {
             return false;
+        }
+
+        if ($this->createdCommunities()->where('id', $communityId)->exists()) {
+            return true;
         }
 
         return $this->moderatedCommunities()

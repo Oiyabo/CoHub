@@ -16,7 +16,7 @@
         : null;
 @endphp
 
-<article id="post-{{ $post->id }}" class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs">
+<article id="post-{{ $post->id }}" data-post-id="{{ $post->id }}" class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs">
 
     <div class="flex items-center justify-between gap-3 mb-2.5">
         <div class="flex items-center gap-2 flex-wrap">

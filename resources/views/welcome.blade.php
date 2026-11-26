@@ -11,6 +11,8 @@
             </p>
         </div>
 
+        <x-feed-sorter :current-tab="$tab ?? null" />
+
         @forelse($posts as $post)
             <article class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs"
                      data-post-id="{{ $post->id }}">

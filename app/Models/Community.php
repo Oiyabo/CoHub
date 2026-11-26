@@ -69,6 +69,11 @@ class Community extends Model
     {
         if (!$user)
             return false;
+
+        if ($this->created_by && $user->id === $this->created_by) {
+            return true;
+        }
+
         return $this->members()
             ->where('users.id', $user->id)
             ->wherePivotIn('role', ['admin', 'moderator'])

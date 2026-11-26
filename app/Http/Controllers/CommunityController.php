@@ -9,6 +9,7 @@ use App\Http\Requests\AddModeratorRequest;
 use App\Models\Community;
 use App\Models\User;
 use App\Models\CommunityMember;
+use App\Notifications\ModerationNotification;
 use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -228,6 +229,12 @@ class CommunityController extends Controller
                 foreach ($currentMods as $mod) {
                     if ($mod->id !== $ownerId && !in_array($mod->id, $submittedModIds, true)) {
                         $community->members()->updateExistingPivot($mod->id, ['role' => 'member']);
+                        ModerationNotification::send(
+                            actor: Auth::user(),
+                            actionType: 'remove_moderator',
+                            targetUser: $mod,
+                            community: $community
+                        );
                     }
                 }
 
@@ -244,10 +251,20 @@ class CommunityController extends Controller
 
                     $user = User::find($modId);
                     if ($user) {
+                        $wasMod = $currentMods->contains('id', $user->id);
                         if ($community->isMember($user)) {
                             $community->members()->updateExistingPivot($user->id, ['role' => 'moderator']);
                         } else {
                             $community->members()->attach($user->id, ['role' => 'moderator']);
+                        }
+
+                        if (!$wasMod) {
+                            ModerationNotification::send(
+                                actor: Auth::user(),
+                                actionType: 'add_moderator',
+                                targetUser: $user,
+                                community: $community
+                            );
                         }
                     }
                 }
@@ -312,6 +329,13 @@ class CommunityController extends Controller
 
         $community->members()->updateExistingPivot($user->id, ['role' => 'moderator']);
 
+        ModerationNotification::send(
+            actor: Auth::user(),
+            actionType: 'add_moderator',
+            targetUser: $user,
+            community: $community
+        );
+
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
@@ -340,7 +364,21 @@ class CommunityController extends Controller
             return back()->with('error', $msg);
         }
 
-        $community->members()->updateExistingPivot($user->id, ['role' => 'member']);
+        $isMod = $community->members()
+            ->where('users.id', $user->id)
+            ->wherePivotIn('role', ['admin', 'moderator'])
+            ->exists();
+
+        if ($isMod) {
+            $community->members()->updateExistingPivot($user->id, ['role' => 'member']);
+
+            ModerationNotification::send(
+                actor: Auth::user(),
+                actionType: 'remove_moderator',
+                targetUser: $user,
+                community: $community
+            );
+        }
 
         if ($request->wantsJson()) {
             return response()->json([
