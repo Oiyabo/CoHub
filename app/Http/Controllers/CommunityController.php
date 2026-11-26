@@ -45,8 +45,13 @@ class CommunityController extends Controller
             $query->where('category', $category);
         })
         ->when($search, function ($query, $search) {
+            $search = trim(preg_replace('/\s+/', ' ', $search));
+            $search = str_replace('-', ' ', $search);
             $query->where(function ($subQuery) use ($search) {
-                $subQuery->where('name', 'ilike', "%{$search}%")
+                $subQuery->whereRaw(
+                        "REPLACE(name, '-', ' ') ILIKE ?",
+                        ["%{$search}%"]
+                    )
                     ->orWhere('description', 'ilike', "%{$search}%");
             });
         })
