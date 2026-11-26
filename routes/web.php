@@ -71,6 +71,9 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/posts/{post}/save', [SavedPostController::class, 'destroy'])
         ->name('saved.destroy');
+
+    Route::post('/reports', [AdminController::class, 'storeReport'])
+        ->name('reports.store');
 });
 
 Route::middleware('auth')->prefix('api')->group(function () {
@@ -79,6 +82,7 @@ Route::middleware('auth')->prefix('api')->group(function () {
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [AdminController::class, 'dashboard'])->name('index');
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/users', [AdminController::class, 'manageUsers'])->name('users.index');
     Route::post('/users/{user}/toggle-block', [AdminController::class, 'toggleBlockUser'])->name('users.toggle-block');
@@ -86,6 +90,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/communities', [AdminController::class, 'manageCommunities'])->name('communities.index');
     Route::post('/communities/{community}/toggle-close', [AdminController::class, 'toggleCloseCommunity'])->name('communities.toggle-close');
     Route::delete('/communities/{community}', [AdminController::class, 'deleteCommunity'])->name('communities.destroy');
+    Route::get('/reports', [AdminController::class, 'manageReports'])->name('reports.index');
+    Route::post('/reports/{report}/review', [AdminController::class, 'reviewReport'])->name('reports.review');
+    Route::delete('/reports/{report}', [AdminController::class, 'deleteReport'])->name('reports.destroy');
+    Route::get('/roles', [AdminController::class, 'manageRoles'])->name('roles.index');
 });
 
 Route::get('/communities', [CommunityController::class, 'index'])->name('communities.index');
