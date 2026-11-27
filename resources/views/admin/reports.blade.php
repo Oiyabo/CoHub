@@ -73,55 +73,34 @@
             <span x-text="flashMsg"></span>
         </div>
 
-        <form method="GET" action="{{ route('admin.reports.index') }}"
-              class="bg-white rounded-2xl border border-slate-200/80 px-4 py-2.5 shadow-2xs flex items-center gap-2.5">
-            @if($statusFilter !== 'all')
-                <input type="hidden" name="status" value="{{ $statusFilter }}">
-            @endif
-            @if($typeFilter !== 'all')
-                <input type="hidden" name="type" value="{{ $typeFilter }}">
-            @endif
-            @if($sort !== 'latest')
-                <input type="hidden" name="sort" value="{{ $sort }}">
-            @endif
-            <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="7" stroke-width="2"></circle>
-                <path d="m16 16 4 4" stroke-width="2" stroke-linecap="round"></path>
-            </svg>
-            <input type="text"
-                   name="search"
-                   value="{{ $search }}"
-                   placeholder="Cari target, @username, pelapor, atau alasan laporan..."
-                   class="w-full border-0 bg-transparent p-0 text-xs text-slate-800 placeholder-slate-400 focus:ring-0 focus:outline-none">
-            @if($search !== '' || $statusFilter !== 'all' || $typeFilter !== 'all' || $sort !== 'latest')
-                <a href="{{ route('admin.reports.index') }}" class="text-[11px] font-semibold text-slate-400 hover:text-slate-600 shrink-0">Reset</a>
-            @endif
-        </form>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2.5">
+            <form method="GET" action="{{ route('admin.reports.index') }}"
+                  class="flex-1 min-w-0 bg-white rounded-2xl border border-slate-200/80 px-4 py-2.5 shadow-2xs flex items-center gap-2.5">
+                @if($statusFilter !== 'all')
+                    <input type="hidden" name="status" value="{{ $statusFilter }}">
+                @endif
+                @if($typeFilter !== 'all')
+                    <input type="hidden" name="type" value="{{ $typeFilter }}">
+                @endif
+                @if($sort !== 'latest')
+                    <input type="hidden" name="sort" value="{{ $sort }}">
+                @endif
+                <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="7" stroke-width="2"></circle>
+                    <path d="m16 16 4 4" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+                <input type="text"
+                       name="search"
+                       value="{{ $search }}"
+                       placeholder="Cari target, @username, pelapor, atau alasan..."
+                       class="w-full min-w-0 border-0 bg-transparent p-0 text-xs text-slate-800 placeholder-slate-400 focus:ring-0 focus:outline-none">
+            </form>
 
-        <div class="flex flex-wrap items-center justify-between gap-2.5">
-            <div class="inline-flex items-center gap-1 bg-slate-200/70 p-1 rounded-2xl flex-wrap">
-                @foreach($statusTabs as $statusKey => $statusLabel)
-                    @php
-                        $countVal = $statusCounts[$statusKey] ?? 0;
-                        $isActive = $statusFilter === $statusKey;
-                    @endphp
-                    <a href="{{ $buildFilterUrl(['status' => $statusKey]) }}"
-                       class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-1.5 {{ $isActive ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900' }}">
-                        <span>{{ $statusLabel }}</span>
-                        @if($countVal > 0)
-                            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none {{ $statusKey === 'new' ? 'bg-rose-100 text-rose-700' : ($isActive ? 'bg-slate-100 text-slate-700' : 'bg-white/70 text-slate-600') }}">
-                                {{ $countVal }}
-                            </span>
-                        @endif
-                    </a>
-                @endforeach
-            </div>
-
-            <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-2 shrink-0">
                 <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                     <button type="button"
                             @click="open = !open"
-                            class="px-3.5 py-2 rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 text-xs font-semibold text-slate-700 shadow-2xs inline-flex items-center gap-2 cursor-pointer transition-colors">
+                            class="px-3.5 py-2.5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 text-xs font-semibold text-slate-700 shadow-2xs inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors">
                         <span>{{ $typeOptions[$typeFilter] ?? 'Semua Jenis' }}</span>
                         <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none bg-slate-100 text-slate-600">
                             {{ $typeCounts[$typeFilter] ?? 0 }}
@@ -134,7 +113,7 @@
                     <div x-show="open"
                          x-transition
                          style="display: none;"
-                         class="absolute right-0 mt-1.5 w-48 bg-white rounded-2xl border border-slate-200/90 shadow-lg py-1.5 z-30">
+                         class="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-48 bg-white rounded-2xl border border-slate-200/90 shadow-lg py-1.5 z-30">
                         @foreach($typeOptions as $typeKey => $typeLabel)
                             <a href="{{ $buildFilterUrl(['type' => $typeKey]) }}"
                                class="px-3.5 py-2 text-xs flex items-center justify-between gap-2 transition-colors {{ $typeFilter === $typeKey ? 'bg-blue-50/70 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-50 font-medium' }}">
@@ -150,8 +129,10 @@
                 <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                     <button type="button"
                             @click="open = !open"
-                            class="px-3.5 py-2 rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 text-xs font-semibold text-slate-700 shadow-2xs inline-flex items-center gap-1.5 cursor-pointer transition-colors">
-                        <span class="text-slate-400 font-medium">Urutkan:</span>
+                            class="px-3.5 py-2.5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 text-xs font-semibold text-slate-700 shadow-2xs inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors">
+                        <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h12M3 12h9m-9 5h6m7-9v10m0 0-3-3m3 3 3-3"></path>
+                        </svg>
                         <span>{{ $sortOptions[$sort] ?? 'Terbaru' }}</span>
                         <svg class="w-3.5 h-3.5 text-slate-400 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"></path>
@@ -171,6 +152,31 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-2.5 flex-wrap">
+            <div class="inline-flex items-center gap-1 bg-slate-200/70 p-1 rounded-2xl flex-wrap">
+                @foreach($statusTabs as $statusKey => $statusLabel)
+                    @php
+                        $countVal = $statusCounts[$statusKey] ?? 0;
+                        $isActive = $statusFilter === $statusKey;
+                    @endphp
+                    <a href="{{ $buildFilterUrl(['status' => $statusKey]) }}"
+                       class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900' }}">
+                        <span>{{ $statusLabel }}</span>
+                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none {{ $statusKey === 'new' && $countVal > 0 ? 'bg-rose-100 text-rose-700' : ($countVal === 0 ? 'bg-white/50 text-slate-400' : ($isActive ? 'bg-slate-100 text-slate-700' : 'bg-white/70 text-slate-600')) }}">
+                            {{ $countVal }}
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+
+            @if($search !== '' || $statusFilter !== 'all' || $typeFilter !== 'all' || $sort !== 'latest')
+                <a href="{{ route('admin.reports.index') }}"
+                   class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 transition-colors shrink-0">
+                    Reset filter
+                </a>
+            @endif
         </div>
 
         <div class="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-2xs overflow-hidden">
