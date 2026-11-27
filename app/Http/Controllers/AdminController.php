@@ -379,17 +379,29 @@ class AdminController extends Controller
         ]);
     }
 
-    public function manageReports()
+    public function manageReports(Request $request)
     {
         $sidebarStats = $this->sidebarSummary();
+
+        $allowedStatuses = ['all', 'new', 'reviewed', 'resolved', 'dismissed'];
+        $allowedTypes = ['all', 'post', 'comment', 'user', 'community'];
+
+        $statusFilter = in_array($request->get('status', 'all'), $allowedStatuses, true)
+            ? $request->get('status', 'all')
+            : 'all';
+        $typeFilter = in_array($request->get('type', 'all'), $allowedTypes, true)
+            ? $request->get('type', 'all')
+            : 'all';
 
         if (! SafeSchema::hasTable('reports')) {
             $reports = new LengthAwarePaginator([], 0, 15);
 
-            return view('admin.reports', compact('reports', 'sidebarStats'));
+            return view('admin.reports', compact('reports', 'sidebarStats', 'statusFilter', 'typeFilter'));
         }
 
-        $reports = Report::with('reporter')
+        $reports = Report::with(['reporter', 'reviewer'])
+            ->when($statusFilter !== 'all', fn ($q) => $q->where('status', $statusFilter))
+            ->when($typeFilter !== 'all', fn ($q) => $q->where('reportable_type', $typeFilter))
             ->latest()
             ->paginate(15)
             ->withQueryString();
@@ -397,29 +409,32 @@ class AdminController extends Controller
         $reports->getCollection()->transform(function ($report) {
             $target = $report->resolveTarget();
             $title = 'Konten tidak tersedia';
-            $meta = $report->reason;
+            $meta = 'Target sudah tidak tersedia';
             $targetUrl = null;
             $canDeleteTarget = $target !== null;
 
             if ($report->reportable_type === 'community' && $target) {
                 $title = 'c/' . $target->name;
                 $creator = $target->creator?->name ?? 'Administrator';
-                $meta = $report->reason . ' · dibuat oleh ' . $creator;
+                $meta = 'dibuat oleh ' . $creator;
                 $targetUrl = route('communities.show', $target->name);
             } elseif ($report->reportable_type === 'post' && $target) {
                 $title = '"' . $target->title . '"';
                 $comm = $target->community ? 'c/' . $target->community->name : 'Postingan umum';
-                $meta = $comm . ' · ' . $report->reason;
+                $authorName = $target->user?->name ?? 'Pengguna';
+                $meta = $comm . ' · oleh ' . $authorName;
                 $targetUrl = route('posts.show', $target);
             } elseif ($report->reportable_type === 'comment' && $target) {
                 $postTitle = $target->post?->title ?? 'Postingan';
                 $title = 'Komentar pada "' . str($postTitle)->limit(38) . '"';
                 $comm = $target->post?->community ? 'c/' . $target->post->community->name : 'Postingan umum';
-                $meta = $comm . ' · "' . str($target->content)->limit(55) . '"';
+                $snippet = $target->deleted_at ? '[Komentar telah dihapus]' : '"' . str($target->content)->limit(55) . '"';
+                $meta = $comm . ' · ' . $snippet;
                 $targetUrl = $target->post ? route('posts.show', $target->post) : null;
+                $canDeleteTarget = $target->deleted_at === null;
             } elseif ($report->reportable_type === 'user' && $target) {
                 $title = $target->username ? '@' . $target->username : $target->name;
-                $meta = $report->reason;
+                $meta = $target->name;
                 $targetUrl = $target->username ? route('profile.show', ['user' => $target->username]) : null;
                 $canDeleteTarget = ! $target->isAdmin() && $target->id !== Auth::id();
             }
@@ -428,11 +443,16 @@ class AdminController extends Controller
             $report->display_meta = $meta;
             $report->target_url = $targetUrl;
             $report->can_delete_target = $canDeleteTarget;
+            $report->reporter_display = $report->reporter
+                ? $report->reporter->name . ($report->reporter->username ? ' (@' . $report->reporter->username . ')' : '')
+                : 'Pengguna tidak dikenal';
+            $report->reported_at_human = $report->created_at?->diffForHumans() ?? '-';
+            $report->reported_at_formatted = $report->created_at?->format('d M Y, H:i') ?? '-';
 
             return $report;
         });
 
-        return view('admin.reports', compact('reports', 'sidebarStats'));
+        return view('admin.reports', compact('reports', 'sidebarStats', 'statusFilter', 'typeFilter'));
     }
 
     public function reviewReport(Request $request, Report $report)
@@ -496,24 +516,70 @@ class AdminController extends Controller
     public function storeReport(Request $request)
     {
         if (! SafeSchema::hasTable('reports')) {
-            $msg = 'Fitur laporan belum aktif di database. Jalankan php artisan migrate terlebih dahulu.';
-
-            return $request->expectsJson()
-                ? response()->json(['success' => false, 'message' => $msg], 503)
-                : back()->with('error', $msg);
+            return $this->reportErrorResponse(
+                $request,
+                'Fitur laporan belum aktif di database. Jalankan php artisan migrate terlebih dahulu.',
+                503
+            );
         }
 
         $validated = $request->validate([
             'reportable_type' => ['required', 'in:community,post,comment,user'],
             'reportable_id'   => ['required', 'integer', 'min:1'],
-            'reason'          => ['required', 'string', 'max:255'],
+            'reason'          => ['required', 'string', 'min:3', 'max:255'],
         ]);
+
+        $target = match ($validated['reportable_type']) {
+            'community' => Community::find($validated['reportable_id']),
+            'post'      => Post::find($validated['reportable_id']),
+            'comment'   => Comment::find($validated['reportable_id']),
+            'user'      => User::find($validated['reportable_id']),
+            default     => null,
+        };
+
+        if (! $target || ($target instanceof Comment && $target->deleted_at !== null)) {
+            return $this->reportErrorResponse(
+                $request,
+                'Target yang dilaporkan tidak ditemukan atau sudah dihapus.',
+                $target ? 422 : 404
+            );
+        }
+
+        $ownerId = match (true) {
+            $target instanceof Community => $target->created_by,
+            $target instanceof Post      => $target->user_id,
+            $target instanceof Comment   => $target->user_id,
+            $target instanceof User      => $target->id,
+            default                      => null,
+        };
+
+        if ((int) $ownerId === (int) Auth::id()) {
+            return $this->reportErrorResponse(
+                $request,
+                'Anda tidak dapat melaporkan konten atau akun Anda sendiri.',
+                422
+            );
+        }
+
+        $alreadyReported = Report::where('reporter_id', Auth::id())
+            ->where('reportable_type', $validated['reportable_type'])
+            ->where('reportable_id', $validated['reportable_id'])
+            ->whereIn('status', ['new', 'reviewed'])
+            ->exists();
+
+        if ($alreadyReported) {
+            return $this->reportErrorResponse(
+                $request,
+                'Anda sudah melaporkan target ini dan laporan sedang dalam proses tinjauan.',
+                422
+            );
+        }
 
         $report = Report::create([
             'reporter_id'     => Auth::id(),
             'reportable_type' => $validated['reportable_type'],
             'reportable_id'   => $validated['reportable_id'],
-            'reason'          => $validated['reason'],
+            'reason'          => trim($validated['reason']),
             'status'          => 'new',
         ]);
 
@@ -526,6 +592,13 @@ class AdminController extends Controller
         }
 
         return back()->with('status', 'Laporan berhasil dikirim untuk ditinjau Admin.');
+    }
+
+    private function reportErrorResponse(Request $request, string $message, int $status)
+    {
+        return $request->expectsJson()
+            ? response()->json(['success' => false, 'message' => $message], $status)
+            : back()->with('error', $message);
     }
 
     public function manageRoles(Request $request)

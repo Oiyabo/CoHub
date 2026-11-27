@@ -313,6 +313,202 @@ class VotingAndAdminTest extends TestCase
         $this->assertDatabaseMissing('posts', ['id' => $post->id]);
     }
 
+    public function test_users_can_report_all_four_target_types_and_see_report_buttons(): void
+    {
+        $reporter = User::factory()->create(['username' => 'pelapor_uji']);
+        $author = User::factory()->create(['username' => 'terlapor_uji']);
+        $community = $this->createCommunity($author, 'komunitas-target');
+
+        $post = Post::create([
+            'user_id' => $author->id,
+            'community_id' => $community->id,
+            'title' => 'Postingan Dilaporkan',
+            'content' => 'Konten uji pelaporan.',
+            'status' => 'published',
+        ]);
+
+        $comment = Comment::create([
+            'post_id' => $post->id,
+            'user_id' => $author->id,
+            'content' => 'Komentar kasar uji coba',
+        ]);
+
+        $this->actingAs($reporter)
+            ->get(route('posts.show', $post))
+            ->assertOk()
+            ->assertSee('open-report', false);
+
+        $this->actingAs($reporter)
+            ->get(route('profile.show', ['user' => $author->username]))
+            ->assertOk()
+            ->assertSee('Laporkan pengguna');
+
+        $this->actingAs($reporter)
+            ->get(route('communities.show', $community->name))
+            ->assertOk()
+            ->assertSee('open-report', false);
+
+        foreach ([
+            ['reportable_type' => 'post', 'reportable_id' => $post->id, 'reason' => 'Spam promosi postingan'],
+            ['reportable_type' => 'comment', 'reportable_id' => $comment->id, 'reason' => 'Komentar mengandung ujaran kebencian'],
+            ['reportable_type' => 'user', 'reportable_id' => $author->id, 'reason' => 'Akun menyebarkan spam berulang'],
+            ['reportable_type' => 'community', 'reportable_id' => $community->id, 'reason' => 'Komunitas melanggar aturan'],
+        ] as $payload) {
+            $this->actingAs($reporter)
+                ->postJson(route('reports.store'), $payload)
+                ->assertCreated()
+                ->assertJson(['success' => true]);
+        }
+
+        $this->assertSame(4, Report::where('reporter_id', $reporter->id)->where('status', 'new')->count());
+    }
+
+    public function test_report_submission_rejects_self_report_missing_target_and_duplicate_active_report(): void
+    {
+        $reporter = User::factory()->create();
+        $author = User::factory()->create();
+        $community = $this->createCommunity($author, 'komunitas-validasi');
+
+        $post = Post::create([
+            'user_id' => $author->id,
+            'community_id' => $community->id,
+            'title' => 'Postingan Validasi',
+            'content' => 'Konten validasi.',
+            'status' => 'published',
+        ]);
+
+        $comment = Comment::create([
+            'post_id' => $post->id,
+            'user_id' => $author->id,
+            'content' => 'Komentar aktif validasi',
+        ]);
+
+        $deletedComment = Comment::create([
+            'post_id' => $post->id,
+            'user_id' => $author->id,
+            'content' => '',
+        ]);
+        $deletedComment->deleted_at = now();
+        $deletedComment->save();
+
+        $this->actingAs($reporter)
+            ->postJson(route('reports.store'), [
+                'reportable_type' => 'post',
+                'reportable_id' => 999999,
+                'reason' => 'Target tidak ada',
+            ])
+            ->assertStatus(404);
+
+        $this->actingAs($reporter)
+            ->postJson(route('reports.store'), [
+                'reportable_type' => 'comment',
+                'reportable_id' => $deletedComment->id,
+                'reason' => 'Komentar sudah terhapus',
+            ])
+            ->assertStatus(422);
+
+        foreach ([
+            ['reportable_type' => 'post', 'reportable_id' => $post->id, 'reason' => 'Laporkan postingan sendiri'],
+            ['reportable_type' => 'comment', 'reportable_id' => $comment->id, 'reason' => 'Laporkan komentar sendiri'],
+            ['reportable_type' => 'user', 'reportable_id' => $author->id, 'reason' => 'Laporkan profil sendiri'],
+            ['reportable_type' => 'community', 'reportable_id' => $community->id, 'reason' => 'Laporkan komunitas sendiri'],
+        ] as $selfPayload) {
+            $this->actingAs($author)
+                ->postJson(route('reports.store'), $selfPayload)
+                ->assertStatus(422);
+        }
+
+        $this->actingAs($reporter)
+            ->postJson(route('reports.store'), [
+                'reportable_type' => 'post',
+                'reportable_id' => $post->id,
+                'reason' => 'Laporan pertama valid',
+            ])
+            ->assertCreated();
+
+        $this->actingAs($reporter)
+            ->postJson(route('reports.store'), [
+                'reportable_type' => 'post',
+                'reportable_id' => $post->id,
+                'reason' => 'Laporan ganda saat masih aktif',
+            ])
+            ->assertStatus(422);
+
+        Report::firstOrFail()->update(['status' => 'resolved']);
+
+        $this->actingAs($reporter)
+            ->postJson(route('reports.store'), [
+                'reportable_type' => 'post',
+                'reportable_id' => $post->id,
+                'reason' => 'Laporan ulang setelah selesai',
+            ])
+            ->assertCreated();
+    }
+
+    public function test_admin_reports_page_displays_full_details_filters_and_dismiss_action(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $reporter = User::factory()->create(['name' => 'Rina Pelapor', 'username' => 'rina_p']);
+        $author = User::factory()->create(['name' => 'Doni Terlapor', 'username' => 'doni_t']);
+        $community = $this->createCommunity($author, 'komunitas-filter');
+
+        $post = Post::create([
+            'user_id' => $author->id,
+            'community_id' => $community->id,
+            'title' => 'Postingan Terfilter',
+            'content' => 'Isi postingan.',
+            'status' => 'published',
+        ]);
+
+        $comment = Comment::create([
+            'post_id' => $post->id,
+            'user_id' => $author->id,
+            'content' => 'Komentar melanggar aturan',
+        ]);
+
+        $postReport = Report::create([
+            'reporter_id' => $reporter->id,
+            'reportable_type' => 'post',
+            'reportable_id' => $post->id,
+            'reason' => 'Alasan spam tautan eksternal',
+            'status' => 'new',
+        ]);
+
+        $commentReport = Report::create([
+            'reporter_id' => $reporter->id,
+            'reportable_type' => 'comment',
+            'reportable_id' => $comment->id,
+            'reason' => 'Alasan komentar kasar',
+            'status' => 'resolved',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.reports.index'))
+            ->assertOk()
+            ->assertSee('Postingan Terfilter')
+            ->assertSee('Alasan spam tautan eksternal')
+            ->assertSee('Rina Pelapor')
+            ->assertSee($postReport->created_at->format('d M Y, H:i'));
+
+        $this->actingAs($admin)
+            ->get(route('admin.reports.index', ['status' => 'resolved', 'type' => 'comment']))
+            ->assertOk()
+            ->assertSee('Alasan komentar kasar')
+            ->assertDontSee('Alasan spam tautan eksternal');
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.reports.review', $postReport), ['status' => 'dismissed'])
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'status' => 'dismissed',
+                'status_label' => 'Diabaikan',
+            ]);
+
+        $this->assertSame('dismissed', $postReport->fresh()->status);
+        $this->assertSame($commentReport->id, Report::where('status', 'resolved')->first()?->id);
+    }
+
     public function test_app_and_admin_pages_do_not_crash_when_new_admin_schema_is_missing(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
