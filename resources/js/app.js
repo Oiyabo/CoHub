@@ -11,13 +11,13 @@ function createRepliesGroup() {
 
     group.className = "mt-2";
     group.dataset.repliesGroup = "";
-    group.setAttribute("x-data", "{ open: true }");
+    group.setAttribute("x-data", "{ open: true, count: 1 }");
 
     const button = document.createElement("button");
 
     button.type = "button";
     button.className =
-        "text-[11px] text-slate-500 font-semibold cursor-pointer flex items-center gap-1";
+        "text-[11px] text-slate-500 font-semibold cursor-pointer flex items-center gap-1 hover:text-slate-700 transition-colors";
     button.setAttribute("@click", "open = !open");
     button.setAttribute(":aria-expanded", "open");
 
@@ -26,7 +26,8 @@ function createRepliesGroup() {
 
     const count = document.createElement("span");
     count.dataset.repliesCount = "";
-    count.textContent = "1 Balasan";
+    count.setAttribute("x-text", "open ? 'Sembunyikan balasan' : 'Lihat ' + count + ' balasan'");
+    count.textContent = "Sembunyikan balasan";
 
     button.append(arrow, count);
 
@@ -51,9 +52,12 @@ document.addEventListener("submit", async function (event) {
     event.preventDefault();
 
     const button = form.querySelector('button[type="submit"]');
+    let originalBtnHtml = "";
 
     if (button) {
         button.disabled = true;
+        originalBtnHtml = button.innerHTML;
+        button.innerHTML = `<svg class="animate-spin -ml-1 mr-1.5 h-3.5 w-3.5 inline text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Memproses...`;
     }
 
     try {
@@ -62,7 +66,7 @@ document.addEventListener("submit", async function (event) {
         const response = await fetch(form.action, {
             method: "POST",
             headers: {
-                "X-CSRF-TOKEN": csrfToken.content,
+                "X-CSRF-TOKEN": csrfToken ? csrfToken.content : "",
                 Accept: "application/json",
                 "X-Requested-With": "XMLHttpRequest",
             },
@@ -84,7 +88,7 @@ document.addEventListener("submit", async function (event) {
         const post = form.closest("[data-post-id]");
 
         if (form.dataset.commentAjax === "store") {
-            const commentsList = post.querySelector("[data-comments-list]");
+            const commentsList = post ? post.querySelector("[data-comments-list]") : null;
 
             const template = document.createElement("template");
             template.innerHTML = data.html.trim();
@@ -117,37 +121,46 @@ document.addEventListener("submit", async function (event) {
                 if (isNewGroup) {
                     window.Alpine.initTree(group);
                 } else {
-                    window.Alpine.$data(group).open = true;
+                    const alpineData = window.Alpine?.$data(group);
+                    if (alpineData) {
+                        alpineData.count = repliesList.children.length;
+                        alpineData.open = true;
+                    }
                 }
-
-                const replyCount = repliesList.children.length;
-
-                group.querySelector("[data-replies-count]").textContent =
-                    `${replyCount} Balasan`;
             } else {
-                const emptyMessage = commentsList.querySelector(
-                    "[data-empty-comments]",
-                );
+                if (commentsList) {
+                    const emptyMessage = commentsList.querySelector(
+                        "[data-empty-comments]",
+                    );
 
-                if (emptyMessage) {
-                    emptyMessage.remove();
+                    if (emptyMessage) {
+                        emptyMessage.remove();
+                    }
+
+                    const newElements = Array.from(template.content.children);
+                    newElements.forEach((el) => {
+                        commentsList.appendChild(el);
+                        if (window.Alpine) {
+                            window.Alpine.initTree(el);
+                        }
+                    });
                 }
-
-                commentsList.appendChild(template.content);
             }
 
-            const countElement = post.querySelector("[data-comment-count]");
+            if (post) {
+                const countElement = post.querySelector("[data-comment-count]");
 
-            if (countElement) {
-                const currentCount = parseInt(
-                    countElement.dataset.count || "0",
-                    10,
-                );
+                if (countElement) {
+                    const currentCount = parseInt(
+                        countElement.dataset.count || "0",
+                        10,
+                    );
 
-                const newCount = currentCount + 1;
+                    const newCount = currentCount + 1;
 
-                countElement.dataset.count = newCount;
-                countElement.textContent = `💬 ${newCount} Komentar`;
+                    countElement.dataset.count = newCount;
+                    countElement.textContent = `💬 ${newCount} Komentar`;
+                }
             }
 
             form.reset();
@@ -183,8 +196,108 @@ document.addEventListener("submit", async function (event) {
         console.error(error);
     } finally {
         if (button) {
+            if (originalBtnHtml) {
+                button.innerHTML = originalBtnHtml;
+            }
             button.disabled = false;
         }
+    }
+});
+
+// Tombol Batal pada Form Komentar, Balasan, dan Edit
+document.addEventListener("click", function (event) {
+    const cancelBtn = event.target.closest("[data-comment-cancel]");
+    if (!cancelBtn) return;
+
+    const form = cancelBtn.closest("form");
+    if (!form) return;
+
+    const textarea = form.querySelector("textarea[name='content']");
+    const cancelType = cancelBtn.dataset.commentCancel;
+
+    if (cancelType === "store" || cancelType === "reply") {
+        if (textarea) {
+            textarea.value = "";
+        }
+    } else if (cancelType === "edit") {
+        if (textarea) {
+            textarea.value = textarea.dataset.originalContent || textarea.defaultValue || "";
+        }
+    }
+
+    const details = form.closest("details");
+    if (details) {
+        details.open = false;
+    }
+});
+
+// AJAX Pagination "See more" Komentar
+document.addEventListener("click", async function (event) {
+    const loadMoreBtn = event.target.closest("[data-load-more-comments]");
+    if (!loadMoreBtn) return;
+
+    const url = loadMoreBtn.dataset.loadMoreComments;
+    const nextPage = parseInt(loadMoreBtn.dataset.nextPage || "2", 10);
+    const container = loadMoreBtn.closest("[data-load-more-container]");
+    const post = loadMoreBtn.closest("[data-post-id]");
+    const commentsList = post ? post.querySelector("[data-comments-list]") : null;
+
+    if (!url || !commentsList) return;
+
+    loadMoreBtn.disabled = true;
+    const originalText = loadMoreBtn.innerHTML;
+    loadMoreBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-1.5 h-3.5 w-3.5 inline text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Memuat...`;
+
+    try {
+        const response = await fetch(`${url}?page=${nextPage}`, {
+            headers: {
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error("Gagal memuat komentar.");
+        }
+
+        const data = await response.json();
+        const template = document.createElement("template");
+        template.innerHTML = data.html.trim();
+
+        // Mencegah komentar duplikat
+        const existingIds = new Set(
+            Array.from(commentsList.querySelectorAll("[data-comment-id]")).map(
+                (el) => el.dataset.commentId,
+            ),
+        );
+
+        const newNodes = Array.from(template.content.children);
+        newNodes.forEach((node) => {
+            const commentId = node.dataset?.commentId;
+            if (!commentId || !existingIds.has(commentId)) {
+                commentsList.appendChild(node);
+                if (window.Alpine) {
+                    window.Alpine.initTree(node);
+                }
+            }
+        });
+
+        if (data.has_more) {
+            loadMoreBtn.dataset.nextPage = (nextPage + 1).toString();
+            loadMoreBtn.innerHTML = originalText;
+            loadMoreBtn.disabled = false;
+        } else {
+            if (container) {
+                container.remove();
+            } else {
+                loadMoreBtn.remove();
+            }
+        }
+    } catch (error) {
+        alert("Gagal memuat komentar berikutnya. Silakan coba lagi.");
+        console.error(error);
+        loadMoreBtn.innerHTML = originalText;
+        loadMoreBtn.disabled = false;
     }
 });
 
@@ -192,7 +305,6 @@ window.axios.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && [401, 419].includes(error.response.status)) {
-            // Tampilkan modal login atau konfirmasi reload
             if (window.dispatchEvent) {
                 window.dispatchEvent(
                     new CustomEvent("open-login-modal", {

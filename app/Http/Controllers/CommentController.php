@@ -11,6 +11,41 @@ use App\Notifications\NewCommentNotification;
 
 class CommentController extends Controller
 {
+    public function index(Request $request, Post $post)
+    {
+        if ($post->community && $post->community->is_private) {
+            Gate::authorize('view', $post->community);
+        }
+
+        $post->load(['user.moderatedCommunities', 'community', 'votes', 'comments.user', 'comments.votes']);
+        $post->buildCommentTree();
+
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = 10;
+        $tree = $post->commentTree;
+        $total = $tree->count();
+
+        $comments = $tree->slice(($page - 1) * $perPage, $perPage)->values();
+        $hasMore = ($page * $perPage) < $total;
+
+        $html = view('components.comment-tree', [
+            'comments' => $comments,
+            'depth' => 0,
+        ])->render();
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'html' => $html,
+                'has_more' => $hasMore,
+                'next_page' => $page + 1,
+                'total' => $total,
+                'count' => $comments->count(),
+            ]);
+        }
+
+        return $html;
+    }
+
     public function store(Request $request, Post $post)
     {
         Gate::authorize('create', [Comment::class, $post]);

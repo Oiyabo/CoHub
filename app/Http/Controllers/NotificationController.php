@@ -75,9 +75,26 @@ class NotificationController extends Controller
         }
         $unreadCount = $unreadQuery->count();
 
+        // Menghitung notifikasi yang sudah dibaca
+        $readQuery = $request->user()->notifications()->whereNotNull('read_at');
+        if (!$canSeeModeration) {
+            if ($isPgsql) {
+                $readQuery->whereRaw(
+                    "(data::jsonb ->> 'category') IS DISTINCT FROM 'moderation'"
+                );
+            } else {
+                $readQuery->where(function ($q) {
+                    $q->whereNull('data->category')
+                        ->orWhere('data->category', '!=', 'moderation');
+                });
+            }
+        }
+        $readCount = $readQuery->count();
+
         return view('notifications.index', compact(
             'notifications',
             'unreadCount',
+            'readCount',
             'filter',
             'canSeeModeration'
         ));
@@ -123,5 +140,52 @@ class NotificationController extends Controller
             'success',
             'Semua notifikasi berhasil ditandai sebagai dibaca.'
         );
+    }
+
+    // Menghapus satu notifikasi yang sudah dibaca
+    public function destroy(
+        Request $request,
+        string $notification
+    ): RedirectResponse {
+        $item = $request->user()
+            ->notifications()
+            ->where('id', $notification)
+            ->firstOrFail();
+
+        if ($item->read_at === null) {
+            return back()->with('error', 'Hanya notifikasi yang sudah dibaca yang dapat dihapus.');
+        }
+
+        $item->delete();
+
+        return back()->with('success', 'Notifikasi berhasil dihapus.');
+    }
+
+    // Menghapus seluruh notifikasi yang sudah dibaca
+    public function destroyAllRead(Request $request): RedirectResponse
+    {
+        $canSeeModeration = $request->user()->isAdmin()
+            || $request->user()->moderatedCommunities()->exists()
+            || $request->user()->createdCommunities()->exists();
+
+        $query = $request->user()->notifications()->whereNotNull('read_at');
+        $isPgsql = DB::connection()->getDriverName() === 'pgsql';
+
+        if (!$canSeeModeration) {
+            if ($isPgsql) {
+                $query->whereRaw(
+                    "(data::jsonb ->> 'category') IS DISTINCT FROM 'moderation'"
+                );
+            } else {
+                $query->where(function ($q) {
+                    $q->whereNull('data->category')
+                        ->orWhere('data->category', '!=', 'moderation');
+                });
+            }
+        }
+
+        $query->delete();
+
+        return back()->with('success', 'Semua notifikasi yang sudah dibaca berhasil dihapus.');
     }
 }

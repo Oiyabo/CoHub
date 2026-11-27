@@ -16,12 +16,22 @@
         : null;
 @endphp
 
-<article id="post-{{ $post->id }}" data-post-id="{{ $post->id }}" class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs">
+<article id="post-{{ $post->id }}"
+         data-post-id="{{ $post->id }}"
+         class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs {{ !$detail ? 'cursor-pointer hover:border-blue-300 transition-colors' : '' }}"
+         @if(!$detail)
+             onclick="if (!event.target.closest('a, button, form, summary, [data-no-nav]') && !window.getSelection().toString()) window.location.href = '{{ route('posts.show', $post) }}'"
+         @endif>
 
     <div class="flex items-center justify-between gap-3 mb-2.5">
         <div class="flex items-center gap-2 flex-wrap">
-            <div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
-                {{ strtoupper(substr($author->name, 0, 2)) }}
+            <div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs overflow-hidden shrink-0">
+                @if($author->avatar_url)
+                    <img src="{{ $author->avatar_url }}" alt="{{ $author->name }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                    <span style="display: none;">{{ strtoupper(substr($author->name, 0, 2)) }}</span>
+                @else
+                    <span>{{ strtoupper(substr($author->name, 0, 2)) }}</span>
+                @endif
             </div>
             @if($author->username)
                 <a href="{{ route('profile.show', ['user' => $author->username]) }}"

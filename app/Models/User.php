@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -17,6 +18,8 @@ class User extends Authenticatable
         'name',
         'username',
         'bio',
+        'avatar_path',
+        'banner_path',
         'email',
         'password',
         'role',
@@ -127,5 +130,49 @@ class User extends Authenticatable
     public function isBlocked(): bool
     {
         return (bool) ($this->is_blocked ?? false);
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (! $this->avatar_path) {
+            return null;
+        }
+
+        if (str_starts_with($this->avatar_path, 'http://') || str_starts_with($this->avatar_path, 'https://')) {
+            return $this->avatar_path;
+        }
+
+        if (filled(config('filesystems.disks.s3.bucket')) && Storage::disk('s3')->exists($this->avatar_path)) {
+            return Storage::disk('s3')->url($this->avatar_path);
+        }
+
+        $cleanPath = ltrim($this->avatar_path, '/');
+        if (str_starts_with($cleanPath, 'storage/')) {
+            $cleanPath = substr($cleanPath, 8);
+        }
+
+        return asset('storage/' . $cleanPath);
+    }
+
+    public function getBannerUrlAttribute(): ?string
+    {
+        if (! $this->banner_path) {
+            return null;
+        }
+
+        if (str_starts_with($this->banner_path, 'http://') || str_starts_with($this->banner_path, 'https://')) {
+            return $this->banner_path;
+        }
+
+        if (filled(config('filesystems.disks.s3.bucket')) && Storage::disk('s3')->exists($this->banner_path)) {
+            return Storage::disk('s3')->url($this->banner_path);
+        }
+
+        $cleanPath = ltrim($this->banner_path, '/');
+        if (str_starts_with($cleanPath, 'storage/')) {
+            $cleanPath = substr($cleanPath, 8);
+        }
+
+        return asset('storage/' . $cleanPath);
     }
 }

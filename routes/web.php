@@ -17,20 +17,12 @@ Route::get('/', function (Request $request) {
     $tab = PostFeed::normalizeTab($request->query('tab'));
     $posts = PostFeed::get($tab);
 
-    foreach ($posts as $post) {
-        $post->buildCommentTree();
-    }
-
     return view('welcome', compact('posts', 'tab'));
 });
 
 Route::get('/dashboard', function (Request $request) {
     $tab = PostFeed::normalizeTab($request->query('tab'));
     $posts = PostFeed::get($tab);
-
-    foreach ($posts as $post) {
-        $post->buildCommentTree();
-    }
 
     return view('dashboard', compact('posts', 'tab'));
 })->middleware(['auth', 'verified'])->name('dashboard');
@@ -133,7 +125,17 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
         ->name('notifications.read');
+
+    Route::delete('/notifications/read-all', [NotificationController::class, 'destroyAllRead'])
+        ->name('notifications.destroy-all-read');
+
+    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])
+        ->name('notifications.destroy');
 });
+
+Route::get('/posts/{post}/comments', [CommentController::class, 'index'])
+    ->whereNumber('post')
+    ->name('comments.index');
 
 require __DIR__ . '/posts.php';
 Route::get('/c/{community:name}', [CommunityController::class, 'show'])->name('communities.show');

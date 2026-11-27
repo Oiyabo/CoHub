@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\User;
+use App\Services\ImageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -119,10 +120,43 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        $user->fill($request->validated());
+        $validated = $request->validated();
+        unset($validated['avatar'], $validated['banner']);
+
+        $user->fill($validated);
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
+        }
+
+        if ($request->hasFile('avatar')) {
+            $oldAvatar = $user->avatar_path;
+            $newAvatar = ImageService::compressAndStore(
+                $request->file('avatar'),
+                'avatars',
+                maxWidth: 400,
+                disk: 'public'
+            );
+            $user->avatar_path = $newAvatar;
+
+            if ($oldAvatar) {
+                ImageService::delete($oldAvatar, disk: 'public');
+            }
+        }
+
+        if ($request->hasFile('banner')) {
+            $oldBanner = $user->banner_path;
+            $newBanner = ImageService::compressAndStore(
+                $request->file('banner'),
+                'banners',
+                maxWidth: 1600,
+                disk: 'public'
+            );
+            $user->banner_path = $newBanner;
+
+            if ($oldBanner) {
+                ImageService::delete($oldBanner, disk: 'public');
+            }
         }
 
         $user->save();

@@ -1,54 +1,57 @@
-<section class="space-y-6">
-    <header>
-        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-            {{ __('Delete Account') }}
+<section class="space-y-4">
+    <header class="border-b border-slate-100 pb-4">
+        <h2 class="text-base font-bold text-red-600">
+            Hapus Akun
         </h2>
 
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Before deleting your account, please download any data or information that you wish to retain.') }}
+        <p class="text-xs text-slate-400 mt-1">
+            Setelah akun dihapus, seluruh data dan aktivitas Anda akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.
         </p>
     </header>
 
-    <x-danger-button
-        x-data=""
-        x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
-    >{{ __('Delete Account') }}</x-danger-button>
+    <div>
+        <button type="button"
+                x-data=""
+                x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
+                class="bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-semibold text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer">
+            Hapus Akun Saya
+        </button>
+    </div>
 
     <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
-        <form method="post" action="{{ route('profile.destroy') }}" class="p-6">
+        <form method="post" action="{{ route('profile.destroy') }}" class="p-6 space-y-4">
             @csrf
             @method('delete')
 
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                {{ __('Are you sure you want to delete your account?') }}
+            <h2 class="text-base font-bold text-slate-900">
+                Apakah Anda yakin ingin menghapus akun?
             </h2>
 
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.') }}
+            <p class="text-xs text-slate-500 leading-relaxed">
+                Setelah akun Anda dihapus, seluruh sumber daya dan data akan dihapus secara permanen. Masukkan password Anda untuk mengonfirmasi penghapusan akun secara permanen.
             </p>
 
-            <div class="mt-6">
-                <x-input-label for="password" value="{{ __('Password') }}" class="sr-only" />
-
-                <x-text-input
-                    id="password"
-                    name="password"
-                    type="password"
-                    class="mt-1 block w-3/4"
-                    placeholder="{{ __('Password') }}"
-                />
-
-                <x-input-error :messages="$errors->userDeletion->get('password')" class="mt-2" />
+            <div>
+                <label for="password" class="sr-only">Password</label>
+                <input id="password"
+                       name="password"
+                       type="password"
+                       class="w-full text-xs rounded-xl border-slate-200 focus:border-red-400 focus:ring-red-400"
+                       placeholder="Masukkan password Anda untuk konfirmasi">
+                <x-input-error :messages="$errors->userDeletion->get('password')" class="mt-1" />
             </div>
 
-            <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
-                    {{ __('Cancel') }}
-                </x-secondary-button>
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button type="button"
+                        x-on:click="$dispatch('close')"
+                        class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                    Batal
+                </button>
 
-                <x-danger-button class="ms-3">
-                    {{ __('Delete Account') }}
-                </x-danger-button>
+                <button type="submit"
+                        class="bg-red-600 hover:bg-red-700 text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-xs transition-colors">
+                    Ya, Hapus Akun
+                </button>
             </div>
         </form>
     </x-modal>

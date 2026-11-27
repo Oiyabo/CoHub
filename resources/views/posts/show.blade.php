@@ -42,17 +42,29 @@
                               placeholder="Tulis komentarmu..."
                               class="w-full text-xs rounded-lg border-slate-200 focus:border-blue-400 focus:ring-blue-400"></textarea>
 
-                    <button type="submit"
-                            class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
-                        Kirim Komentar
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="submit"
+                                class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+                            Kirim Komentar
+                        </button>
+                        <button type="button"
+                                data-comment-cancel="store"
+                                class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                            Batal
+                        </button>
+                    </div>
                 </form>
             @endauth
 
+            @php
+                $initialComments = $post->commentTree->take(10);
+                $hasMoreComments = $post->commentTree->count() > 10;
+            @endphp
+
             <div data-comments-list class="space-y-2">
-                @if($post->commentTree->isNotEmpty())
+                @if($initialComments->isNotEmpty())
                     @include('components.comment-tree', [
-                        'comments' => $post->commentTree,
+                        'comments' => $initialComments,
                         'depth' => 0
                     ])
                 @else
@@ -61,6 +73,17 @@
                     </p>
                 @endif
             </div>
+
+            @if($hasMoreComments)
+                <div class="mt-4 text-center" data-load-more-container>
+                    <button type="button"
+                            data-load-more-comments="{{ route('comments.index', $post) }}"
+                            data-next-page="2"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 hover:text-blue-600 transition-colors cursor-pointer">
+                        <span>See more</span>
+                    </button>
+                </div>
+            @endif
         </div>
     </div>
 </x-app-layout>
