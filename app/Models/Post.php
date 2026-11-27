@@ -48,6 +48,11 @@ class Post extends Model
             ->withTimestamps();
     }
 
+    public function isHidden(): bool
+    {
+        return ($this->status ?? 'published') === 'hidden';
+    }
+
     public function getScoreAttribute(): int
     {
         if (array_key_exists('upvotes_count', $this->attributes) || isset($this->upvotes_count)) {

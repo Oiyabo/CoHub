@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\User;
+use App\Support\SafeSchema;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,9 +29,14 @@ class ProfileController extends Controller
             $tab = 'posts';
         }
 
+        $hasHiddenComments = SafeSchema::hasColumn('comments', 'is_hidden');
+
         // Statistik profil
-        $postCount = $user->posts()->count();
-        $commentCount = $user->comments()->count();
+        $postCount = $user->posts()->where('status', 'published')->count();
+        $commentCount = $user->comments()
+            ->whereNull('deleted_at')
+            ->when($hasHiddenComments, fn ($q) => $q->where('is_hidden', false))
+            ->count();
 
         // Menggabungkan komunitas yang dibuat dan dimoderasi.
         $communityCount = $user->joinedCommunities()->count();
@@ -45,6 +51,7 @@ class ProfileController extends Controller
         // Tab Postingan
         if ($tab === 'posts') {
             $posts = $user->posts()
+                ->where('status', 'published')
                 ->with(['user', 'community', 'votes'])
                 ->withCount('comments')
                 ->latest()
@@ -55,6 +62,8 @@ class ProfileController extends Controller
         // Tab Balasan
         if ($tab === 'replies') {
             $replies = $user->comments()
+                ->whereNull('deleted_at')
+                ->when($hasHiddenComments, fn ($q) => $q->where('is_hidden', false))
                 ->whereNotNull('parent_id')
                 ->with([
                     'post.community',

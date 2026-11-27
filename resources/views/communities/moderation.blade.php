@@ -115,6 +115,14 @@
 
     <div class="space-y-4" x-data="communityModerationQueue()">
 
+        <div x-show="flashMsg" x-transition
+             :class="flashType === 'error' ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'"
+             class="px-4 py-2.5 rounded-2xl border flex items-center gap-2 text-xs font-medium shadow-2xs"
+             style="display: none;">
+            <span x-text="flashType === 'error' ? '!' : '✓'"></span>
+            <span x-text="flashMsg"></span>
+        </div>
+
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <div class="flex items-center gap-3 min-w-0">
                 <a href="{{ route('communities.show', $community->name) }}"
@@ -274,10 +282,10 @@
                             <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
                                 {{ $report->type_label }}
                             </span>
-                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold {{ $statusClasses }}">
+                            <span id="mod-status-{{ $report->id }}" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold {{ $statusClasses }}">
                                 {{ $effectiveStatusLabel }}
                             </span>
-                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold {{ $stateClasses }}">
+                            <span id="mod-state-{{ $report->id }}" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold {{ $stateClasses }}">
                                 {{ $report->target_state_label ?? 'Publik' }}
                             </span>
                             @if($reportCount > 1)
@@ -303,6 +311,51 @@
                         <p class="text-[11px] text-slate-400 truncate mt-1">
                             Pelapor: <span class="font-medium text-slate-600">{{ $report->reporter_display }}</span>@if($reportCount > 1 && $uniqueReporters > 1) &amp; {{ $uniqueReporters - 1 }} lainnya @endif · {{ $report->display_meta }}
                         </p>
+
+                        @if(($report->target_state ?? 'published') !== 'deleted')
+                            <div class="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                                <button type="button"
+                                        :disabled="submitting"
+                                        @click="submitAction({{ $report->id }}, 'approve')"
+                                        class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors cursor-pointer disabled:opacity-50">
+                                    {{ ($report->target_state ?? 'published') === 'hidden' ? 'Setujui & Tampilkan' : 'Setujui' }}
+                                </button>
+                                @if(($report->target_state ?? 'published') !== 'hidden')
+                                    <button type="button"
+                                            :disabled="submitting"
+                                            @click="submitAction({{ $report->id }}, 'hide')"
+                                            class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 transition-colors cursor-pointer disabled:opacity-50">
+                                        Sembunyikan
+                                    </button>
+                                @endif
+                                <button type="button"
+                                        x-show="confirmRowDeleteId !== {{ $report->id }}"
+                                        :disabled="submitting"
+                                        @click="confirmRowDeleteId = {{ $report->id }}"
+                                        class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors cursor-pointer disabled:opacity-50">
+                                    Hapus
+                                </button>
+                                <span x-show="confirmRowDeleteId === {{ $report->id }}" style="display: none;" class="inline-flex items-center gap-1">
+                                    <button type="button"
+                                            :disabled="submitting"
+                                            @click="submitAction({{ $report->id }}, 'delete')"
+                                            class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer disabled:opacity-50">
+                                        Ya, hapus
+                                    </button>
+                                    <button type="button"
+                                            @click="confirmRowDeleteId = null"
+                                            class="px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer">
+                                        Batal
+                                    </button>
+                                </span>
+                                <button type="button"
+                                        :disabled="submitting"
+                                        @click="submitAction({{ $report->id }}, 'dismiss')"
+                                        class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer disabled:opacity-50">
+                                    Abaikan
+                                </button>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="flex items-center gap-2 shrink-0">
@@ -311,6 +364,7 @@
                                     id: {{ $report->id }},
                                     typeLabel: @js($report->type_label),
                                     statusLabel: @js($effectiveStatusLabel),
+                                    targetState: @js($report->target_state ?? 'published'),
                                     targetStateLabel: @js($report->target_state_label ?? 'Publik'),
                                     title: @js($report->display_title),
                                     excerpt: @js($report->display_excerpt ?? ''),
@@ -351,7 +405,7 @@
                               x-show="(selected.reportCount || 1) > 1"
                               x-text="(selected.reportCount || 1) + ' laporan'"></span>
                     </div>
-                    <template x-if="selected.targetUrl">
+                    <template x-if="selected.targetUrl && selected.targetState !== 'deleted'">
                         <a :href="selected.targetUrl" target="_blank"
                            class="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline">
                             Lihat konten &rarr;
@@ -369,7 +423,7 @@
                     </div>
                 </template>
 
-                <div class="mt-3 space-y-2 max-h-52 overflow-y-auto pr-1">
+                <div class="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1">
                     <template x-for="item in (selected.items || [])" :key="item.id">
                         <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100">
                             <div class="flex items-center justify-between gap-2 flex-wrap mb-1">
@@ -381,12 +435,62 @@
                     </template>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 mt-5">
+                <template x-if="selected.targetState !== 'deleted'">
+                    <div class="mt-4">
+                        <label class="block text-[11px] font-semibold text-slate-500 mb-1">Catatan Moderasi (Opsional)</label>
+                        <input type="text"
+                               x-model="actionNote"
+                               maxlength="255"
+                               placeholder="Tulis alasan tindakan untuk log moderasi..."
+                               class="w-full rounded-xl border-slate-200 text-xs text-slate-800 focus:border-blue-400 focus:ring-blue-400">
+                    </div>
+                </template>
+
+                <div class="flex items-center justify-between gap-2 mt-5 flex-wrap">
                     <button type="button"
                             @click="detailOpen = false"
-                            class="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer">
+                            class="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer">
                         Tutup
                     </button>
+
+                    <template x-if="selected.targetState !== 'deleted'">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button type="button"
+                                    :disabled="submitting"
+                                    @click="submitAction(selected.id, 'dismiss', true)"
+                                    class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer disabled:opacity-50">
+                                Abaikan
+                            </button>
+                            <button type="button"
+                                    x-show="selected.targetState !== 'hidden'"
+                                    :disabled="submitting"
+                                    @click="submitAction(selected.id, 'hide', true)"
+                                    class="px-3.5 py-2 text-xs font-semibold text-amber-800 bg-amber-100 hover:bg-amber-200 rounded-xl transition-colors cursor-pointer disabled:opacity-50">
+                                Sembunyikan
+                            </button>
+                            <button type="button"
+                                    x-show="!modalDeleteConfirm"
+                                    :disabled="submitting"
+                                    @click="modalDeleteConfirm = true"
+                                    class="px-3.5 py-2 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors cursor-pointer disabled:opacity-50">
+                                Hapus
+                            </button>
+                            <button type="button"
+                                    x-show="modalDeleteConfirm"
+                                    style="display: none;"
+                                    :disabled="submitting"
+                                    @click="submitAction(selected.id, 'delete', true)"
+                                    class="px-3.5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors cursor-pointer disabled:opacity-50">
+                                Konfirmasi Hapus
+                            </button>
+                            <button type="button"
+                                    :disabled="submitting"
+                                    @click="submitAction(selected.id, 'approve', true)"
+                                    class="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                                    x-text="selected.targetState === 'hidden' ? 'Setujui & Tampilkan' : 'Setujui'">
+                            </button>
+                        </div>
+                    </template>
                 </div>
             </div>
         </div>
@@ -398,10 +502,104 @@
             return {
                 detailOpen: false,
                 selected: {},
+                actionNote: '',
+                confirmRowDeleteId: null,
+                modalDeleteConfirm: false,
+                submitting: false,
+                flashMsg: '',
+                flashType: 'success',
+                flashTimeout: null,
+                statusFilter: @js($statusFilter),
 
                 openDetail(item) {
                     this.selected = item;
+                    this.actionNote = '';
+                    this.modalDeleteConfirm = false;
                     this.detailOpen = true;
+                },
+
+                badgeClassForReportStatus(status) {
+                    const map = {
+                        resolved: 'bg-emerald-50 text-emerald-700',
+                        reviewed: 'bg-amber-50 text-amber-700',
+                        dismissed: 'bg-slate-100 text-slate-600',
+                        new: 'bg-rose-50 text-rose-600',
+                    };
+                    return map[status] || 'bg-slate-100 text-slate-600';
+                },
+
+                badgeClassForTargetState(state) {
+                    const map = {
+                        hidden: 'bg-amber-50 text-amber-700',
+                        deleted: 'bg-slate-100 text-slate-500',
+                        published: 'bg-emerald-50 text-emerald-700',
+                    };
+                    return map[state] || 'bg-slate-100 text-slate-600';
+                },
+
+                async submitAction(reportId, action, fromModal = false) {
+                    if (this.submitting) return;
+                    this.submitting = true;
+                    this.confirmRowDeleteId = null;
+
+                    try {
+                        const res = await fetch(`/c/{{ $community->name }}/moderation/${reportId}/action`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                action,
+                                note: fromModal && this.actionNote ? this.actionNote.trim() : null,
+                            }),
+                        });
+
+                        const data = await res.json();
+
+                        if (res.ok && data.success) {
+                            if (fromModal) {
+                                this.detailOpen = false;
+                            }
+
+                            const row = document.getElementById(`mod-row-${reportId}`);
+                            if (this.statusFilter === 'queue' || this.statusFilter === 'new' || this.statusFilter === 'reviewed') {
+                                if (row) {
+                                    row.style.transition = 'opacity 0.25s';
+                                    row.style.opacity = '0';
+                                    setTimeout(() => row.remove(), 250);
+                                }
+                            } else {
+                                const statusBadge = document.getElementById(`mod-status-${reportId}`);
+                                if (statusBadge) {
+                                    statusBadge.innerText = data.report_status_label;
+                                    statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-semibold ' + this.badgeClassForReportStatus(data.report_status);
+                                }
+                                const stateBadge = document.getElementById(`mod-state-${reportId}`);
+                                if (stateBadge) {
+                                    stateBadge.innerText = data.target_state_label;
+                                    stateBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-semibold ' + this.badgeClassForTargetState(data.target_state);
+                                }
+                            }
+
+                            this.showFlash(data.message, 'success');
+                        } else {
+                            this.showFlash(data.message || 'Gagal menjalankan tindakan moderasi.', 'error');
+                        }
+                    } catch (err) {
+                        this.showFlash('Terjadi kesalahan jaringan saat memproses tindakan.', 'error');
+                    } finally {
+                        this.submitting = false;
+                        this.modalDeleteConfirm = false;
+                    }
+                },
+
+                showFlash(msg, type = 'success') {
+                    this.flashMsg = msg;
+                    this.flashType = type;
+                    if (this.flashTimeout) clearTimeout(this.flashTimeout);
+                    this.flashTimeout = setTimeout(() => { this.flashMsg = ''; }, 3800);
                 }
             };
         }

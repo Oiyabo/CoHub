@@ -21,11 +21,13 @@ class PostFeed
     {
         $user = $user ?? auth()->user();
 
+        $hasCommentHidden = SafeSchema::hasColumn('comments', 'is_hidden');
+
         $query = Post::query()
             ->where('status', 'published')
             ->with(['user.moderatedCommunities', 'community', 'votes', 'comments.user', 'comments.votes'])
             ->withCount([
-                'comments' => fn($q) => $q->whereNull('deleted_at'),
+                'comments' => fn($q) => $q->whereNull('deleted_at')->when($hasCommentHidden, fn ($c) => $c->where('is_hidden', false)),
                 'votes as upvotes_count' => fn($q) => $q->where('vote_type', 'upvote'),
                 'votes as downvotes_count' => fn($q) => $q->where('vote_type', 'downvote'),
             ]);

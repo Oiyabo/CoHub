@@ -16,6 +16,13 @@ class VoteController extends Controller
     {
         $user = Auth::user();
 
+        if (($post->status ?? 'published') !== 'published') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Postingan ini tidak dapat divote.',
+            ], 403);
+        }
+
         if ($post->user_id === $user->id) {
             return response()->json([
                 'success' => false,
@@ -94,6 +101,13 @@ class VoteController extends Controller
     public function voteComment(Request $request, Comment $comment)
     {
         $user = Auth::user();
+
+        if ($comment->deleted_at !== null || $comment->isHidden()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Komentar ini tidak dapat divote.',
+            ], 403);
+        }
 
         if ($comment->user_id === $user->id) {
             return response()->json([

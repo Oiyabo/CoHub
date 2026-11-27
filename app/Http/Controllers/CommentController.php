@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Comment;
 use App\Models\Post;
 use App\Notifications\CommentReplyNotification;
+use App\Support\SafeSchema;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use App\Notifications\NewCommentNotification;
@@ -14,6 +15,13 @@ class CommentController extends Controller
     public function store(Request $request, Post $post)
     {
         Gate::authorize('create', [Comment::class, $post]);
+
+        if (($post->status ?? 'published') !== 'published') {
+            $msg = 'Postingan ini tidak dapat dikomentari.';
+            return $request->expectsJson()
+                ? response()->json(['message' => $msg], 403)
+                : back()->with('error', $msg);
+        }
 
         if ($post->community && $post->community->isClosed()) {
             $msg = 'Komunitas ini telah ditutup oleh Administrator.';
@@ -57,6 +65,13 @@ class CommentController extends Controller
     public function reply(Request $request, Comment $comment)
     {
         Gate::authorize('create', [Comment::class, $comment->post]);
+
+        if ($comment->deleted_at !== null || $comment->isHidden()) {
+            $msg = 'Komentar ini tidak dapat dibalas.';
+            return $request->expectsJson()
+                ? response()->json(['message' => $msg], 422)
+                : back()->with('error', $msg);
+        }
 
         if ($comment->post->community && $comment->post->community->isClosed()) {
             $msg = 'Komunitas ini telah ditutup oleh Administrator.';
@@ -128,6 +143,9 @@ class CommentController extends Controller
 
         $comment->content = '';
         $comment->deleted_at = now();
+        if (SafeSchema::hasColumn('comments', 'is_hidden')) {
+            $comment->is_hidden = false;
+        }
         $comment->save();
 
         if ($request->expectsJson()) {

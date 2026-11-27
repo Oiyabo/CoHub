@@ -22,7 +22,13 @@ class Comment extends Model
     {
         return [
             'deleted_at' => 'datetime',
+            'is_hidden' => 'boolean',
         ];
+    }
+
+    public function isHidden(): bool
+    {
+        return (bool) ($this->is_hidden ?? false);
     }
 
     public function user(): BelongsTo

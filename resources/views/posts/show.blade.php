@@ -2,6 +2,12 @@
     <div class="space-y-4" data-post-id="{{ $post->id }}">
         <x-flash-status />
 
+        @if($post->isHidden())
+            <div class="px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800">
+                Postingan ini sedang disembunyikan oleh moderator dan tidak tampil untuk publik.
+            </div>
+        @endif
+
         <div class="flex items-center gap-3">
             <a href="{{ Auth::check() ? route('dashboard') : url('/') }}" aria-label="Kembali"
                class="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-800 transition-colors">

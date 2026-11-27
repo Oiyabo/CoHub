@@ -120,6 +120,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/c/{community:name}/moderators', [CommunityController::class, 'moderatorsIndex'])->name('communities.moderators.index');
     Route::get('/c/{community:name}/moderation', [ModerationController::class, 'index'])->name('communities.moderation.index');
+    Route::post('/c/{community:name}/moderation/{report}/action', [ModerationController::class, 'handleAction'])->name('communities.moderation.action');
     Route::post('/c/{community:name}/moderators/lookup', [CommunityController::class, 'lookupModerator'])->name('communities.moderators.lookup');
     Route::post('/c/{community:name}/moderators', [CommunityController::class, 'addModerator'])->name('communities.moderators.add');
     Route::delete('/c/{community:name}/moderators/{user}', [CommunityController::class, 'removeModerator'])->name('communities.moderators.remove');

@@ -7,6 +7,7 @@ use App\Http\Requests\UpdatePostRequest;
 use App\Models\Post;
 use App\Services\ImageService;
 use App\Support\PostFeed;
+use App\Support\SafeSchema;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -33,9 +34,22 @@ class PostController extends Controller
             Gate::authorize('view', $post->community);
         }
 
+        $viewer = auth()->user();
+        $postStatus = $post->status ?? 'published';
+
+        if ($postStatus === 'draft' && (! $viewer || ($viewer->id !== $post->user_id && ! $viewer->isAdmin()))) {
+            abort(404);
+        }
+
+        if ($postStatus === 'hidden' && (! $viewer || (! $viewer->isAdmin() && ! ($post->community_id && $viewer->isAuthorizedOf($post->community_id))))) {
+            abort(404);
+        }
+
+        $hasHiddenCol = SafeSchema::hasColumn('comments', 'is_hidden');
+
         $post->load(['user.moderatedCommunities', 'community', 'votes', 'comments.user', 'comments.votes'])
             ->loadCount([
-                'comments',
+                'comments' => fn ($q) => $q->whereNull('deleted_at')->when($hasHiddenCol, fn ($c) => $c->where('is_hidden', false)),
                 'votes as upvotes_count' => fn($q) => $q->where('vote_type', 'upvote'),
                 'votes as downvotes_count' => fn($q) => $q->where('vote_type', 'downvote'),
             ]);

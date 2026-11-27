@@ -13,6 +13,7 @@ class SavedPostController extends Controller
     {
         $posts = $request->user()
             ->savedPosts()
+            ->where('status', 'published')
             ->with(['user', 'community', 'votes'])
             ->withCount('comments')
             ->orderBy('saved_posts.created_at', 'desc')

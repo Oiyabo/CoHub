@@ -6,10 +6,13 @@ use App\Models\Comment;
 use App\Models\Community;
 use App\Models\Post;
 use App\Models\Report;
+use App\Services\ImageService;
 use App\Support\SafeSchema;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -338,5 +341,133 @@ class ModerationController extends Controller
             'target_state' => $targetState,
             'target_state_label' => $targetStateLabel,
         ];
+    }
+
+    public function handleAction(Request $request, Community $community, Report $report): JsonResponse
+    {
+        Gate::authorize('moderate', $community);
+
+        $validated = $request->validate([
+            'action' => ['required', 'in:approve,hide,delete,dismiss'],
+            'note'   => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $action = $validated['action'];
+        $target = $report->resolveTarget();
+
+        if (! $target) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Konten target tidak ditemukan atau sudah dihapus.',
+            ], 404);
+        }
+
+        $belongsToCommunity = ($report->reportable_type === 'post' && $target instanceof Post && (int) $target->community_id === (int) $community->id)
+            || ($report->reportable_type === 'comment' && $target instanceof Comment && (int) ($target->post?->community_id ?? 0) === (int) $community->id);
+
+        if (! $belongsToCommunity) {
+            return response()->json([
+                'success' => false,
+                'message' => "Konten ini bukan milik komunitas c/{$community->name} dan tidak dapat dimoderasi dari ruang ini.",
+            ], 403);
+        }
+
+        if ($target instanceof Comment && $target->deleted_at !== null && $action !== 'dismiss') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Komentar ini sudah dihapus permanen.',
+            ], 422);
+        }
+
+        $targetState = 'published';
+        $targetStateLabel = 'Publik';
+
+        if ($action === 'approve') {
+            if ($target instanceof Post) {
+                $target->status = 'published';
+                $target->save();
+            } elseif ($target instanceof Comment && SafeSchema::hasColumn('comments', 'is_hidden') && $target->isHidden()) {
+                $target->is_hidden = false;
+                $target->save();
+            }
+            $reportOutcome = 'resolved';
+        } elseif ($action === 'hide') {
+            if ($target instanceof Post) {
+                $target->status = 'hidden';
+                $target->save();
+            } elseif ($target instanceof Comment) {
+                if (! SafeSchema::hasColumn('comments', 'is_hidden')) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Kolom status sembunyi komentar belum aktif di database. Jalankan php artisan migrate terlebih dahulu.',
+                    ], 503);
+                }
+                $target->is_hidden = true;
+                $target->save();
+            }
+            $targetState = 'hidden';
+            $targetStateLabel = 'Disembunyikan';
+            $reportOutcome = 'resolved';
+        } elseif ($action === 'delete') {
+            if ($target instanceof Post) {
+                ImageService::delete($target->image_path);
+                $target->delete();
+            } elseif ($target instanceof Comment) {
+                $target->content = '';
+                $target->deleted_at = now();
+                if (SafeSchema::hasColumn('comments', 'is_hidden')) {
+                    $target->is_hidden = false;
+                }
+                $target->save();
+            }
+            $targetState = 'deleted';
+            $targetStateLabel = 'Terhapus';
+            $reportOutcome = 'resolved';
+        } else {
+            if ($target instanceof Post && ($target->status ?? 'published') === 'hidden') {
+                $targetState = 'hidden';
+                $targetStateLabel = 'Disembunyikan';
+            } elseif ($target instanceof Comment && $target->deleted_at !== null) {
+                $targetState = 'deleted';
+                $targetStateLabel = 'Terhapus';
+            } elseif ($target instanceof Comment && $target->isHidden()) {
+                $targetState = 'hidden';
+                $targetStateLabel = 'Disembunyikan';
+            }
+            $reportOutcome = 'dismissed';
+        }
+
+        $reportPayload = [
+            'status'      => $reportOutcome,
+            'reviewed_by' => Auth::id(),
+            'reviewed_at' => now(),
+        ];
+
+        $groupQuery = Report::where('reportable_type', $report->reportable_type)
+            ->where('reportable_id', $report->reportable_id);
+        $activeQuery = (clone $groupQuery)->whereIn('status', ['new', 'reviewed']);
+        $updatedCount = $activeQuery->count() > 0
+            ? $activeQuery->update($reportPayload)
+            : (int) Report::where('id', $report->id)->update($reportPayload);
+
+        $report->refresh();
+
+        $actionMsg = match ($action) {
+            'approve' => 'Konten disetujui dan laporan ditandai selesai.',
+            'hide'    => 'Konten disembunyikan dari publik dan laporan diselesaikan.',
+            'delete'  => 'Konten berhasil dihapus dan laporan diselesaikan.',
+            'dismiss' => 'Laporan diabaikan tanpa mengubah konten.',
+        };
+
+        return response()->json([
+            'success'             => true,
+            'action'              => $action,
+            'report_status'       => $report->status,
+            'report_status_label' => $report->status_label,
+            'target_state'        => $targetState,
+            'target_state_label'  => $targetStateLabel,
+            'updated_count'       => $updatedCount,
+            'message'             => $actionMsg,
+        ]);
     }
 }

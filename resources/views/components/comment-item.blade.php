@@ -19,6 +19,10 @@
             <p class="text-xs font-semibold text-slate-400">
                 [komentar telah dihapus]
             </p>
+        @elseif($comment->isHidden())
+            <p class="text-xs font-semibold text-amber-600/80">
+                [komentar disembunyikan oleh moderator]
+            </p>
         @else
             <div class="flex items-center gap-2 flex-wrap mb-1">
 

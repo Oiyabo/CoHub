@@ -16,7 +16,8 @@ class CommentPolicy
     public function update(User $user, Comment $comment): bool
     {
         return $comment->user_id === $user->id
-            && $comment->deleted_at === null;
+            && $comment->deleted_at === null
+            && ! $comment->isHidden();
     }
 
     public function delete(User $user, Comment $comment): bool
