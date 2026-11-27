@@ -2,12 +2,15 @@
     <x-slot name="title">Ruang Moderasi c/{{ $community->name }}</x-slot>
 
     @php
+        $tab = $tab ?? 'queue';
         $statusFilter = $statusFilter ?? 'queue';
         $typeFilter = $typeFilter ?? 'all';
+        $actionFilter = $actionFilter ?? 'all';
         $sort = $sort ?? 'latest';
         $search = $search ?? '';
         $statusCounts = $statusCounts ?? ['queue' => 0, 'all' => 0, 'new' => 0, 'reviewed' => 0, 'resolved' => 0, 'dismissed' => 0];
         $typeCounts = $typeCounts ?? ['all' => 0, 'post' => 0, 'comment' => 0];
+        $actionCounts = $actionCounts ?? ['all' => 0, 'approve' => 0, 'hide' => 0, 'delete' => 0, 'dismiss' => 0];
 
         $statusTabs = [
             'queue' => 'Antrean',
@@ -16,6 +19,14 @@
             'reviewed' => 'Ditinjau',
             'resolved' => 'Selesai',
             'dismissed' => 'Diabaikan',
+        ];
+
+        $actionTabs = [
+            'all' => 'Semua Aksi',
+            'approve' => 'Disetujui',
+            'hide' => 'Disembunyikan',
+            'delete' => 'Dihapus',
+            'dismiss' => 'Diabaikan',
         ];
 
         $typeOptions = [
@@ -30,22 +41,31 @@
             'priority' => 'Prioritas Baru',
         ];
 
-        $buildModerationUrl = function (array $overrides = []) use ($community, $statusFilter, $typeFilter, $sort, $search) {
+        $buildModerationUrl = function (array $overrides = []) use ($community, $tab, $statusFilter, $typeFilter, $actionFilter, $sort, $search) {
+            $activeTab = $overrides['tab'] ?? $tab;
             $params = [
+                'tab' => $activeTab,
                 'status' => $overrides['status'] ?? $statusFilter,
                 'type' => $overrides['type'] ?? $typeFilter,
+                'action' => $overrides['action'] ?? $actionFilter,
                 'sort' => $overrides['sort'] ?? $sort,
                 'search' => $overrides['search'] ?? $search,
             ];
 
             $filtered = ['community' => $community->name];
-            if (($params['status'] ?? 'queue') !== 'queue') {
+            if ($activeTab !== 'queue') {
+                $filtered['tab'] = $activeTab;
+            }
+            if ($activeTab === 'queue' && ($params['status'] ?? 'queue') !== 'queue') {
                 $filtered['status'] = $params['status'];
+            }
+            if ($activeTab === 'logs' && ($params['action'] ?? 'all') !== 'all') {
+                $filtered['action'] = $params['action'];
             }
             if (($params['type'] ?? 'all') !== 'all') {
                 $filtered['type'] = $params['type'];
             }
-            if (($params['sort'] ?? 'latest') !== 'latest') {
+            if ($activeTab === 'queue' && ($params['sort'] ?? 'latest') !== 'latest') {
                 $filtered['sort'] = $params['sort'];
             }
             if (trim((string) ($params['search'] ?? '')) !== '') {
@@ -74,6 +94,10 @@
                     <div class="flex items-center justify-between">
                         <span>Total semua laporan</span>
                         <span class="font-semibold text-slate-800">{{ $statusCounts['all'] ?? 0 }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Riwayat tindakan</span>
+                        <span class="font-semibold text-slate-800">{{ $actionCounts['all'] ?? 0 }} log</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <span>Total anggota</span>
@@ -147,16 +171,39 @@
             </div>
         </div>
 
+        <div class="inline-flex items-center gap-1 bg-slate-200/70 p-1 rounded-2xl">
+            <a href="{{ route('communities.moderation.index', ['community' => $community->name]) }}"
+               class="px-4 py-1.5 rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-1.5 {{ $tab === 'queue' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900' }}">
+                <span>Antrean Laporan</span>
+                <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none {{ ($statusCounts['queue'] ?? 0) > 0 ? 'bg-rose-100 text-rose-700' : 'bg-white/60 text-slate-500' }}">
+                    {{ $statusCounts['queue'] ?? 0 }}
+                </span>
+            </a>
+            <a href="{{ route('communities.moderation.index', ['community' => $community->name, 'tab' => 'logs']) }}"
+               class="px-4 py-1.5 rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-1.5 {{ $tab === 'logs' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900' }}">
+                <span>Riwayat Moderasi</span>
+                <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none {{ $tab === 'logs' ? 'bg-slate-100 text-slate-700' : 'bg-white/70 text-slate-600' }}">
+                    {{ $actionCounts['all'] ?? 0 }}
+                </span>
+            </a>
+        </div>
+
         <div class="flex flex-col sm:flex-row sm:items-center gap-2.5">
             <form method="GET" action="{{ route('communities.moderation.index', $community->name) }}"
                   class="flex-1 min-w-0 bg-white rounded-2xl border border-slate-200/80 px-4 py-2.5 shadow-2xs flex items-center gap-2.5">
-                @if($statusFilter !== 'queue')
+                @if($tab !== 'queue')
+                    <input type="hidden" name="tab" value="{{ $tab }}">
+                @endif
+                @if($tab === 'queue' && $statusFilter !== 'queue')
                     <input type="hidden" name="status" value="{{ $statusFilter }}">
+                @endif
+                @if($tab === 'logs' && $actionFilter !== 'all')
+                    <input type="hidden" name="action" value="{{ $actionFilter }}">
                 @endif
                 @if($typeFilter !== 'all')
                     <input type="hidden" name="type" value="{{ $typeFilter }}">
                 @endif
-                @if($sort !== 'latest')
+                @if($tab === 'queue' && $sort !== 'latest')
                     <input type="hidden" name="sort" value="{{ $sort }}">
                 @endif
                 <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,7 +213,7 @@
                 <input type="text"
                        name="search"
                        value="{{ $search }}"
-                       placeholder="Cari konten, penulis, pelapor, atau alasan..."
+                       placeholder="{{ $tab === 'logs' ? 'Cari target, moderator, penulis, atau catatan...' : 'Cari konten, penulis, pelapor, atau alasan...' }}"
                        class="w-full min-w-0 border-0 bg-transparent p-0 text-xs text-slate-800 placeholder-slate-400 focus:ring-0 focus:outline-none">
             </form>
 
@@ -200,60 +247,140 @@
                     </div>
                 </div>
 
-                <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-                    <button type="button"
-                            @click="open = !open"
-                            class="px-3.5 py-2.5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 text-xs font-semibold text-slate-700 shadow-2xs inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors">
-                        <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h12M3 12h9m-9 5h6m7-9v10m0 0-3-3m3 3 3-3"></path>
-                        </svg>
-                        <span>{{ $sortOptions[$sort] ?? 'Terbaru' }}</span>
-                        <svg class="w-3.5 h-3.5 text-slate-400 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"></path>
-                        </svg>
-                    </button>
+                @if($tab === 'queue')
+                    <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                        <button type="button"
+                                @click="open = !open"
+                                class="px-3.5 py-2.5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 text-xs font-semibold text-slate-700 shadow-2xs inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors">
+                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h12M3 12h9m-9 5h6m7-9v10m0 0-3-3m3 3 3-3"></path>
+                            </svg>
+                            <span>{{ $sortOptions[$sort] ?? 'Terbaru' }}</span>
+                            <svg class="w-3.5 h-3.5 text-slate-400 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"></path>
+                            </svg>
+                        </button>
 
-                    <div x-show="open"
-                         x-transition
-                         style="display: none;"
-                         class="absolute right-0 mt-1.5 w-44 bg-white rounded-2xl border border-slate-200/90 shadow-lg py-1.5 z-30">
-                        @foreach($sortOptions as $sortKey => $sortLabel)
-                            <a href="{{ $buildModerationUrl(['sort' => $sortKey]) }}"
-                               class="block px-3.5 py-2 text-xs transition-colors {{ $sort === $sortKey ? 'bg-blue-50/70 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-50 font-medium' }}">
-                                {{ $sortLabel }}
-                            </a>
-                        @endforeach
+                        <div x-show="open"
+                             x-transition
+                             style="display: none;"
+                             class="absolute right-0 mt-1.5 w-44 bg-white rounded-2xl border border-slate-200/90 shadow-lg py-1.5 z-30">
+                            @foreach($sortOptions as $sortKey => $sortLabel)
+                                <a href="{{ $buildModerationUrl(['sort' => $sortKey]) }}"
+                                   class="block px-3.5 py-2 text-xs transition-colors {{ $sort === $sortKey ? 'bg-blue-50/70 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-50 font-medium' }}">
+                                    {{ $sortLabel }}
+                                </a>
+                            @endforeach
+                        </div>
                     </div>
+                @endif
+            </div>
+        </div>
+
+        @if($tab === 'logs')
+            <div class="flex items-center justify-between gap-2.5 flex-wrap">
+                <div class="inline-flex items-center gap-1 bg-slate-200/70 p-1 rounded-2xl flex-wrap">
+                    @foreach($actionTabs as $actionKey => $actionLabel)
+                        @php
+                            $countVal = $actionCounts[$actionKey] ?? 0;
+                            $isActive = $actionFilter === $actionKey;
+                        @endphp
+                        <a href="{{ $buildModerationUrl(['tab' => 'logs', 'action' => $actionKey]) }}"
+                           class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900' }}">
+                            <span>{{ $actionLabel }}</span>
+                            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none {{ $countVal === 0 ? 'bg-white/50 text-slate-400' : ($isActive ? 'bg-slate-100 text-slate-700' : 'bg-white/70 text-slate-600') }}">
+                                {{ $countVal }}
+                            </span>
+                        </a>
+                    @endforeach
                 </div>
-            </div>
-        </div>
 
-        <div class="flex items-center justify-between gap-2.5 flex-wrap">
-            <div class="inline-flex items-center gap-1 bg-slate-200/70 p-1 rounded-2xl flex-wrap">
-                @foreach($statusTabs as $statusKey => $statusLabel)
-                    @php
-                        $countVal = $statusCounts[$statusKey] ?? 0;
-                        $isActive = $statusFilter === $statusKey;
-                    @endphp
-                    <a href="{{ $buildModerationUrl(['status' => $statusKey]) }}"
-                       class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900' }}">
-                        <span>{{ $statusLabel }}</span>
-                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none {{ ($statusKey === 'queue' || $statusKey === 'new') && $countVal > 0 ? 'bg-rose-100 text-rose-700' : ($countVal === 0 ? 'bg-white/50 text-slate-400' : ($isActive ? 'bg-slate-100 text-slate-700' : 'bg-white/70 text-slate-600')) }}">
-                            {{ $countVal }}
-                        </span>
+                @if($search !== '' || $actionFilter !== 'all' || $typeFilter !== 'all')
+                    <a href="{{ route('communities.moderation.index', ['community' => $community->name, 'tab' => 'logs']) }}"
+                       class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 transition-colors shrink-0">
+                        Reset filter
                     </a>
-                @endforeach
+                @endif
             </div>
 
-            @if($search !== '' || $statusFilter !== 'queue' || $typeFilter !== 'all' || $sort !== 'latest')
-                <a href="{{ route('communities.moderation.index', $community->name) }}"
-                   class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 transition-colors shrink-0">
-                    Reset filter
-                </a>
-            @endif
-        </div>
+            <div class="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-2xs overflow-hidden">
+                @forelse($logs as $log)
+                    @php
+                        $logActionClasses = match ($log->action) {
+                            'approve' => 'bg-emerald-50 text-emerald-700',
+                            'hide' => 'bg-amber-50 text-amber-800',
+                            'delete' => 'bg-rose-50 text-rose-700',
+                            default => 'bg-slate-100 text-slate-600',
+                        };
+                    @endphp
+                    <div class="px-5 py-4 hover:bg-slate-50/50 transition-colors">
+                        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold {{ $logActionClasses }}">
+                                {{ $log->action_label }}
+                            </span>
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
+                                {{ $log->target_type_label }}
+                            </span>
+                            @if(($log->reports_affected ?? 1) > 1)
+                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700">
+                                    {{ $log->reports_affected }} laporan
+                                </span>
+                            @endif
+                            <span class="text-[11px] text-slate-400">
+                                {{ $log->created_at?->locale('id')->diffForHumans() }} · {{ $log->created_at?->format('d M Y, H:i') }}
+                            </span>
+                        </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-2xs overflow-hidden">
+                        <p class="text-sm font-bold text-slate-900">{{ $log->target_snapshot }}</p>
+                        @if($log->note)
+                            <p class="text-xs text-slate-600 mt-1">
+                                <span class="font-semibold text-slate-700">Catatan:</span> {{ $log->note }}
+                            </p>
+                        @endif
+                        <p class="text-[11px] text-slate-400 mt-1">
+                            Moderator: <span class="font-medium text-slate-600">{{ $log->moderator?->name ?? 'Sistem' }}@if($log->moderator?->username) ({{ '@' . $log->moderator->username }})@endif</span>
+                            · Penulis konten: <span class="font-medium text-slate-600">{{ $log->targetAuthor?->name ?? 'Pengguna' }}</span>
+                        </p>
+                    </div>
+                @empty
+                    <div class="px-5 py-10 text-center text-xs text-slate-400">
+                        Belum ada riwayat tindakan moderasi di c/{{ $community->name }}.
+                    </div>
+                @endforelse
+            </div>
+
+            @if($logs->hasPages())
+                <div class="pt-1">
+                    {{ $logs->links() }}
+                </div>
+            @endif
+        @else
+            <div class="flex items-center justify-between gap-2.5 flex-wrap">
+                <div class="inline-flex items-center gap-1 bg-slate-200/70 p-1 rounded-2xl flex-wrap">
+                    @foreach($statusTabs as $statusKey => $statusLabel)
+                        @php
+                            $countVal = $statusCounts[$statusKey] ?? 0;
+                            $isActive = $statusFilter === $statusKey;
+                        @endphp
+                        <a href="{{ $buildModerationUrl(['status' => $statusKey]) }}"
+                           class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900' }}">
+                            <span>{{ $statusLabel }}</span>
+                            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none {{ ($statusKey === 'queue' || $statusKey === 'new') && $countVal > 0 ? 'bg-rose-100 text-rose-700' : ($countVal === 0 ? 'bg-white/50 text-slate-400' : ($isActive ? 'bg-slate-100 text-slate-700' : 'bg-white/70 text-slate-600')) }}">
+                                {{ $countVal }}
+                            </span>
+                        </a>
+                    @endforeach
+                </div>
+
+                @if($search !== '' || $statusFilter !== 'queue' || $typeFilter !== 'all' || $sort !== 'latest')
+                    <a href="{{ route('communities.moderation.index', $community->name) }}"
+                       class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 transition-colors shrink-0">
+                        Reset filter
+                    </a>
+                @endif
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-2xs overflow-hidden">
             @forelse($reports as $report)
                 @php
                     $effectiveStatus = $report->group_status ?? $report->status;
@@ -385,10 +512,11 @@
             @endforelse
         </div>
 
-        @if($reports->hasPages())
-            <div class="pt-1">
-                {{ $reports->links() }}
-            </div>
+            @if($reports->hasPages())
+                <div class="pt-1">
+                    {{ $reports->links() }}
+                </div>
+            @endif
         @endif
 
         <div x-show="detailOpen"

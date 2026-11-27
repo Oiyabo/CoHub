@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Comment;
 use App\Models\Community;
+use App\Models\ModerationLog;
 use App\Models\Post;
 use App\Models\Report;
 use App\Models\User;
@@ -523,5 +524,120 @@ class ModerationTest extends TestCase
                 'action' => 'hide',
             ])
             ->assertStatus(503);
+    }
+
+    public function test_moderation_actions_create_community_scoped_logs_with_snapshot_filters_and_missing_table_safety(): void
+    {
+        $creator = User::factory()->create();
+        $moderator = User::factory()->create(['name' => 'Mod Log Uji', 'username' => 'mod_log']);
+        $author = User::factory()->create(['name' => 'Penulis Log']);
+        $reporterOne = User::factory()->create();
+        $reporterTwo = User::factory()->create();
+
+        $communityA = $this->createCommunityWithModerator($creator, $moderator, 'komunitas-log-a');
+        $communityB = $this->createCommunityWithModerator(User::factory()->create(), null, 'komunitas-log-b');
+
+        $postA = Post::create([
+            'user_id' => $author->id,
+            'community_id' => $communityA->id,
+            'title' => 'Judul Postingan Untuk Log',
+            'content' => 'Konten.',
+            'status' => 'published',
+        ]);
+
+        $postB = Post::create([
+            'user_id' => $author->id,
+            'community_id' => $communityB->id,
+            'title' => 'Judul Postingan Komunitas Lain',
+            'content' => 'Konten lain.',
+            'status' => 'published',
+        ]);
+
+        Report::create([
+            'reporter_id' => $reporterOne->id,
+            'reportable_type' => 'post',
+            'reportable_id' => $postA->id,
+            'reason' => 'Spam satu',
+            'status' => 'new',
+        ]);
+
+        $reportA = Report::create([
+            'reporter_id' => $reporterTwo->id,
+            'reportable_type' => 'post',
+            'reportable_id' => $postA->id,
+            'reason' => 'Spam dua',
+            'status' => 'new',
+        ]);
+
+        ModerationLog::create([
+            'community_id' => $communityB->id,
+            'moderator_id' => $creator->id,
+            'target_type' => 'post',
+            'target_id' => $postB->id,
+            'target_snapshot' => 'Log Milik Komunitas B',
+            'target_author_id' => $author->id,
+            'action' => 'hide',
+            'note' => 'Catatan komunitas B',
+            'reports_affected' => 1,
+        ]);
+
+        $this->actingAs($moderator)
+            ->postJson(route('communities.moderation.action', ['community' => $communityA->name, 'report' => $reportA->id]), [
+                'action' => 'hide',
+                'note' => 'Mengandung tautan promosi',
+            ])
+            ->assertOk();
+
+        $this->actingAs($moderator)
+            ->postJson(route('communities.moderation.action', ['community' => $communityA->name, 'report' => $reportA->id]), [
+                'action' => 'delete',
+                'note' => 'Dihapus permanen setelah tinjauan',
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('moderation_logs', [
+            'community_id' => $communityA->id,
+            'moderator_id' => $moderator->id,
+            'target_type' => 'post',
+            'target_id' => $postA->id,
+            'target_snapshot' => 'Judul Postingan Untuk Log',
+            'action' => 'hide',
+            'note' => 'Mengandung tautan promosi',
+            'reports_affected' => 2,
+        ]);
+
+        $this->assertDatabaseHas('moderation_logs', [
+            'community_id' => $communityA->id,
+            'action' => 'delete',
+            'target_snapshot' => 'Judul Postingan Untuk Log',
+            'note' => 'Dihapus permanen setelah tinjauan',
+        ]);
+
+        $this->actingAs($moderator)
+            ->get(route('communities.moderation.index', ['community' => $communityA->name, 'tab' => 'logs']))
+            ->assertOk()
+            ->assertSee('Judul Postingan Untuk Log')
+            ->assertSee('Mengandung tautan promosi')
+            ->assertSee('Dihapus permanen setelah tinjauan')
+            ->assertSee('Mod Log Uji')
+            ->assertDontSee('Log Milik Komunitas B');
+
+        $this->actingAs($moderator)
+            ->get(route('communities.moderation.index', [
+                'community' => $communityA->name,
+                'tab' => 'logs',
+                'action' => 'hide',
+                'search' => 'tautan promosi',
+            ]))
+            ->assertOk()
+            ->assertSee('Mengandung tautan promosi')
+            ->assertDontSee('Dihapus permanen setelah tinjauan');
+
+        Schema::dropIfExists('moderation_logs');
+        SafeSchema::flush();
+
+        $this->actingAs($moderator)
+            ->get(route('communities.moderation.index', ['community' => $communityA->name, 'tab' => 'logs']))
+            ->assertOk();
     }
 }

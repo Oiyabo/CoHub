@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Comment;
 use App\Models\Community;
+use App\Models\ModerationLog;
 use App\Models\Post;
 use App\Models\Report;
 use App\Services\ImageService;
@@ -22,8 +23,13 @@ class ModerationController extends Controller
     {
         Gate::authorize('moderate', $community);
 
+        $tab = in_array($request->get('tab', 'queue'), ['queue', 'logs'], true)
+            ? $request->get('tab', 'queue')
+            : 'queue';
+
         $allowedStatuses = ['queue', 'all', 'new', 'reviewed', 'resolved', 'dismissed'];
         $allowedTypes = ['all', 'post', 'comment'];
+        $allowedActions = ['all', 'approve', 'hide', 'delete', 'dismiss'];
         $allowedSorts = ['latest', 'most_reported', 'priority'];
 
         $statusFilter = in_array($request->get('status', 'queue'), $allowedStatuses, true)
@@ -31,6 +37,9 @@ class ModerationController extends Controller
             : 'queue';
         $typeFilter = in_array($request->get('type', 'all'), $allowedTypes, true)
             ? $request->get('type', 'all')
+            : 'all';
+        $actionFilter = in_array($request->get('action', 'all'), $allowedActions, true)
+            ? $request->get('action', 'all')
             : 'all';
         $sort = in_array($request->get('sort', 'latest'), $allowedSorts, true)
             ? $request->get('sort', 'latest')
@@ -50,44 +59,125 @@ class ModerationController extends Controller
             'post' => 0,
             'comment' => 0,
         ];
+        $actionCounts = [
+            'all' => 0,
+            'approve' => 0,
+            'hide' => 0,
+            'delete' => 0,
+            'dismiss' => 0,
+        ];
 
         $community->loadCount(['members', 'posts']);
         $rules = $community->rules ?? [];
 
-        if (! SafeSchema::hasTable('reports')) {
-            $reports = new LengthAwarePaginator([], 0, 15);
+        $hasReportsTable = SafeSchema::hasTable('reports');
+        $hasLogsTable = SafeSchema::hasTable('moderation_logs');
+
+        if ($hasLogsTable) {
+            $logRaw = ModerationLog::where('community_id', $community->id)
+                ->selectRaw('action, count(*) as total')
+                ->groupBy('action')
+                ->pluck('total', 'action');
+
+            $actionCounts = [
+                'all' => (int) $logRaw->sum(),
+                'approve' => (int) ($logRaw['approve'] ?? 0),
+                'hide' => (int) ($logRaw['hide'] ?? 0),
+                'delete' => (int) ($logRaw['delete'] ?? 0),
+                'dismiss' => (int) ($logRaw['dismiss'] ?? 0),
+            ];
+        }
+
+        $logs = new LengthAwarePaginator([], 0, 15);
+        $reports = new LengthAwarePaginator([], 0, 15);
+
+        if ($hasReportsTable) {
+            $baseQuery = $this->communityReportsQuery($community);
+
+            $statusRaw = (clone $baseQuery)
+                ->selectRaw('status, count(*) as total')
+                ->groupBy('status')
+                ->pluck('total', 'status');
+
+            $newCount = (int) ($statusRaw['new'] ?? 0);
+            $reviewedCount = (int) ($statusRaw['reviewed'] ?? 0);
+
+            $statusCounts = [
+                'queue' => $newCount + $reviewedCount,
+                'all' => (int) $statusRaw->sum(),
+                'new' => $newCount,
+                'reviewed' => $reviewedCount,
+                'resolved' => (int) ($statusRaw['resolved'] ?? 0),
+                'dismissed' => (int) ($statusRaw['dismissed'] ?? 0),
+            ];
+        }
+
+        if ($tab === 'logs') {
+            if ($hasLogsTable) {
+                $logTypeRaw = ModerationLog::where('community_id', $community->id)
+                    ->when($actionFilter !== 'all', fn ($q) => $q->where('action', $actionFilter))
+                    ->selectRaw('target_type, count(*) as total')
+                    ->groupBy('target_type')
+                    ->pluck('total', 'target_type');
+
+                $typeCounts = [
+                    'all' => (int) $logTypeRaw->sum(),
+                    'post' => (int) ($logTypeRaw['post'] ?? 0),
+                    'comment' => (int) ($logTypeRaw['comment'] ?? 0),
+                ];
+
+                $logsQuery = ModerationLog::where('community_id', $community->id)
+                    ->with(['moderator', 'targetAuthor'])
+                    ->when($actionFilter !== 'all', fn ($q) => $q->where('action', $actionFilter))
+                    ->when($typeFilter !== 'all', fn ($q) => $q->where('target_type', $typeFilter))
+                    ->when($search !== '', function (Builder $q) use ($search) {
+                        $term = '%' . mb_strtolower($search) . '%';
+                        $q->where(function (Builder $sub) use ($term) {
+                            $sub->whereRaw('LOWER(target_snapshot) LIKE ?', [$term])
+                                ->orWhereRaw("LOWER(COALESCE(note, '')) LIKE ?", [$term])
+                                ->orWhereHas('moderator', fn ($m) => $m->whereRaw('LOWER(name) LIKE ?', [$term]))
+                                ->orWhereHas('targetAuthor', fn ($a) => $a->whereRaw('LOWER(name) LIKE ?', [$term]));
+                        });
+                    })
+                    ->latest();
+
+                $logs = $logsQuery->paginate(15)->withQueryString();
+            }
 
             return view('communities.moderation', compact(
                 'community',
                 'rules',
+                'tab',
                 'reports',
+                'logs',
                 'statusFilter',
                 'typeFilter',
+                'actionFilter',
                 'sort',
                 'search',
                 'statusCounts',
-                'typeCounts'
+                'typeCounts',
+                'actionCounts'
             ));
         }
 
-        $baseQuery = $this->communityReportsQuery($community);
-
-        $statusRaw = (clone $baseQuery)
-            ->selectRaw('status, count(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status');
-
-        $newCount = (int) ($statusRaw['new'] ?? 0);
-        $reviewedCount = (int) ($statusRaw['reviewed'] ?? 0);
-
-        $statusCounts = [
-            'queue' => $newCount + $reviewedCount,
-            'all' => (int) $statusRaw->sum(),
-            'new' => $newCount,
-            'reviewed' => $reviewedCount,
-            'resolved' => (int) ($statusRaw['resolved'] ?? 0),
-            'dismissed' => (int) ($statusRaw['dismissed'] ?? 0),
-        ];
+        if (! $hasReportsTable) {
+            return view('communities.moderation', compact(
+                'community',
+                'rules',
+                'tab',
+                'reports',
+                'logs',
+                'statusFilter',
+                'typeFilter',
+                'actionFilter',
+                'sort',
+                'search',
+                'statusCounts',
+                'typeCounts',
+                'actionCounts'
+            ));
+        }
 
         $typeQuery = clone $baseQuery;
         if ($statusFilter === 'queue') {
@@ -251,13 +341,17 @@ class ModerationController extends Controller
         return view('communities.moderation', compact(
             'community',
             'rules',
+            'tab',
             'reports',
+            'logs',
             'statusFilter',
             'typeFilter',
+            'actionFilter',
             'sort',
             'search',
             'statusCounts',
-            'typeCounts'
+            'typeCounts',
+            'actionCounts'
         ));
     }
 
@@ -379,6 +473,15 @@ class ModerationController extends Controller
             ], 422);
         }
 
+        $targetAuthorId = $target->user_id;
+        if ($target instanceof Post) {
+            $targetSnapshot = str((string) $target->title)->limit(120)->toString();
+        } else {
+            $postTitle = $target->post?->title ?? 'Postingan';
+            $snippet = $target->deleted_at !== null ? '[komentar dihapus]' : str((string) $target->content)->limit(60)->toString();
+            $targetSnapshot = 'Komentar pada "' . str($postTitle)->limit(45) . '": "' . $snippet . '"';
+        }
+
         $targetState = 'published';
         $targetStateLabel = 'Publik';
 
@@ -451,6 +554,22 @@ class ModerationController extends Controller
             : (int) Report::where('id', $report->id)->update($reportPayload);
 
         $report->refresh();
+
+        if (SafeSchema::hasTable('moderation_logs')) {
+            $noteText = isset($validated['note']) ? trim((string) $validated['note']) : '';
+            ModerationLog::create([
+                'community_id'     => $community->id,
+                'moderator_id'     => Auth::id(),
+                'report_id'        => $report->id,
+                'target_type'      => $report->reportable_type,
+                'target_id'        => $report->reportable_id,
+                'target_snapshot'  => $targetSnapshot,
+                'target_author_id' => $targetAuthorId,
+                'action'           => $action,
+                'note'             => $noteText !== '' ? $noteText : null,
+                'reports_affected' => max(1, (int) $updatedCount),
+            ]);
+        }
 
         $actionMsg = match ($action) {
             'approve' => 'Konten disetujui dan laporan ditandai selesai.',
