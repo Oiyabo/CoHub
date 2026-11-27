@@ -385,6 +385,7 @@ class AdminController extends Controller
 
         $allowedStatuses = ['all', 'new', 'reviewed', 'resolved', 'dismissed'];
         $allowedTypes = ['all', 'post', 'comment', 'user', 'community'];
+        $allowedSorts = ['latest', 'most_reported', 'priority'];
 
         $statusFilter = in_array($request->get('status', 'all'), $allowedStatuses, true)
             ? $request->get('status', 'all')
@@ -392,92 +393,299 @@ class AdminController extends Controller
         $typeFilter = in_array($request->get('type', 'all'), $allowedTypes, true)
             ? $request->get('type', 'all')
             : 'all';
+        $sort = in_array($request->get('sort', 'latest'), $allowedSorts, true)
+            ? $request->get('sort', 'latest')
+            : 'latest';
+        $search = trim((string) $request->get('search', ''));
+
+        $statusCounts = [
+            'all' => 0,
+            'new' => 0,
+            'reviewed' => 0,
+            'resolved' => 0,
+            'dismissed' => 0,
+        ];
+        $typeCounts = [
+            'all' => 0,
+            'post' => 0,
+            'comment' => 0,
+            'user' => 0,
+            'community' => 0,
+        ];
 
         if (! SafeSchema::hasTable('reports')) {
             $reports = new LengthAwarePaginator([], 0, 15);
 
-            return view('admin.reports', compact('reports', 'sidebarStats', 'statusFilter', 'typeFilter'));
+            return view('admin.reports', compact(
+                'reports',
+                'sidebarStats',
+                'statusFilter',
+                'typeFilter',
+                'sort',
+                'search',
+                'statusCounts',
+                'typeCounts'
+            ));
         }
 
-        $reports = Report::with(['reporter', 'reviewer'])
+        $statusRaw = Report::selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $statusCounts = [
+            'all' => (int) $statusRaw->sum(),
+            'new' => (int) ($statusRaw['new'] ?? 0),
+            'reviewed' => (int) ($statusRaw['reviewed'] ?? 0),
+            'resolved' => (int) ($statusRaw['resolved'] ?? 0),
+            'dismissed' => (int) ($statusRaw['dismissed'] ?? 0),
+        ];
+
+        $typeRaw = Report::when($statusFilter !== 'all', fn ($q) => $q->where('status', $statusFilter))
+            ->selectRaw('reportable_type, count(*) as total')
+            ->groupBy('reportable_type')
+            ->pluck('total', 'reportable_type');
+
+        $typeCounts = [
+            'all' => (int) $typeRaw->sum(),
+            'post' => (int) ($typeRaw['post'] ?? 0),
+            'comment' => (int) ($typeRaw['comment'] ?? 0),
+            'user' => (int) ($typeRaw['user'] ?? 0),
+            'community' => (int) ($typeRaw['community'] ?? 0),
+        ];
+
+        $matchingReports = Report::with(['reporter', 'reviewer'])
             ->when($statusFilter !== 'all', fn ($q) => $q->where('status', $statusFilter))
             ->when($typeFilter !== 'all', fn ($q) => $q->where('reportable_type', $typeFilter))
             ->latest()
-            ->paginate(15)
-            ->withQueryString();
+            ->get();
 
-        $reports->getCollection()->transform(function ($report) {
-            $target = $report->resolveTarget();
-            $title = 'Konten tidak tersedia';
-            $meta = 'Target sudah tidak tersedia';
-            $targetUrl = null;
-            $canDeleteTarget = $target !== null;
+        $resolvedTargets = [];
+        $grouped = $matchingReports->groupBy(fn ($r) => $r->reportable_type . ':' . $r->reportable_id);
 
-            if ($report->reportable_type === 'community' && $target) {
-                $title = 'c/' . $target->name;
-                $creator = $target->creator?->name ?? 'Administrator';
-                $meta = 'dibuat oleh ' . $creator;
-                $targetUrl = route('communities.show', $target->name);
-            } elseif ($report->reportable_type === 'post' && $target) {
-                $title = '"' . $target->title . '"';
-                $comm = $target->community ? 'c/' . $target->community->name : 'Postingan umum';
-                $authorName = $target->user?->name ?? 'Pengguna';
-                $meta = $comm . ' · oleh ' . $authorName;
-                $targetUrl = route('posts.show', $target);
-            } elseif ($report->reportable_type === 'comment' && $target) {
-                $postTitle = $target->post?->title ?? 'Postingan';
-                $title = 'Komentar pada "' . str($postTitle)->limit(38) . '"';
-                $comm = $target->post?->community ? 'c/' . $target->post->community->name : 'Postingan umum';
-                $snippet = $target->deleted_at ? '[Komentar telah dihapus]' : '"' . str($target->content)->limit(55) . '"';
-                $meta = $comm . ' · ' . $snippet;
-                $targetUrl = $target->post ? route('posts.show', $target->post) : null;
-                $canDeleteTarget = $target->deleted_at === null;
-            } elseif ($report->reportable_type === 'user' && $target) {
-                $title = $target->username ? '@' . $target->username : $target->name;
-                $meta = $target->name;
-                $targetUrl = $target->username ? route('profile.show', ['user' => $target->username]) : null;
-                $canDeleteTarget = ! $target->isAdmin() && $target->id !== Auth::id();
+        $groups = $grouped->map(function ($items) use (&$resolvedTargets) {
+            $representative = $items->first();
+            $cacheKey = $representative->reportable_type . ':' . $representative->reportable_id;
+
+            if (! array_key_exists($cacheKey, $resolvedTargets)) {
+                $resolvedTargets[$cacheKey] = $representative->resolveTarget();
             }
 
-            $report->display_title = $title;
-            $report->display_meta = $meta;
-            $report->target_url = $targetUrl;
-            $report->can_delete_target = $canDeleteTarget;
-            $report->reporter_display = $report->reporter
-                ? $report->reporter->name . ($report->reporter->username ? ' (@' . $report->reporter->username . ')' : '')
-                : 'Pengguna tidak dikenal';
-            $report->reported_at_human = $report->created_at?->diffForHumans() ?? '-';
-            $report->reported_at_formatted = $report->created_at?->format('d M Y, H:i') ?? '-';
+            $targetMeta = $this->formatReportTargetMeta($representative, $resolvedTargets[$cacheKey]);
 
-            return $report;
-        });
+            $mappedItems = $items->map(function ($item) {
+                $reporterDisplay = $item->reporter
+                    ? $item->reporter->name . ($item->reporter->username ? ' (@' . $item->reporter->username . ')' : '')
+                    : 'Pengguna tidak dikenal';
 
-        return view('admin.reports', compact('reports', 'sidebarStats', 'statusFilter', 'typeFilter'));
+                return [
+                    'id' => $item->id,
+                    'reporter_id' => $item->reporter_id,
+                    'reporter' => $reporterDisplay,
+                    'reason' => $item->reason,
+                    'status' => $item->status,
+                    'status_label' => $item->status_label,
+                    'reported_at_human' => $item->created_at?->locale('id')->diffForHumans() ?? '-',
+                    'reported_at_formatted' => $item->created_at?->format('d M Y, H:i') ?? '-',
+                ];
+            })->values();
+
+            $groupStatus = 'dismissed';
+            if ($items->contains('status', 'new')) {
+                $groupStatus = 'new';
+            } elseif ($items->contains('status', 'reviewed')) {
+                $groupStatus = 'reviewed';
+            } elseif ($items->contains('status', 'resolved')) {
+                $groupStatus = 'resolved';
+            }
+
+            $groupStatusLabel = match ($groupStatus) {
+                'new' => 'Baru',
+                'reviewed' => 'Ditinjau',
+                'resolved' => 'Selesai',
+                'dismissed' => 'Diabaikan',
+                default => ucfirst($groupStatus),
+            };
+
+            $firstItem = $mappedItems->first();
+            $uniqueReporters = $items->pluck('reporter_id')->filter()->unique()->count();
+            $distinctReasons = $items->pluck('reason')->map(fn ($r) => trim((string) $r))->filter()->unique()->count();
+
+            $representative->display_title = $targetMeta['display_title'];
+            $representative->display_meta = $targetMeta['display_meta'];
+            $representative->target_url = $targetMeta['target_url'];
+            $representative->can_delete_target = $targetMeta['can_delete_target'];
+            $representative->reporter_display = $firstItem['reporter'];
+            $representative->reported_at_human = $firstItem['reported_at_human'];
+            $representative->reported_at_formatted = $firstItem['reported_at_formatted'];
+            $representative->report_count = $items->count();
+            $representative->active_count = $items->whereIn('status', ['new', 'reviewed'])->count();
+            $representative->unique_reporters_count = $uniqueReporters > 0 ? $uniqueReporters : $items->count();
+            $representative->distinct_reasons_count = $distinctReasons;
+            $representative->group_status = $groupStatus;
+            $representative->group_status_label = $groupStatusLabel;
+            $representative->group_items = $mappedItems->all();
+            $representative->latest_timestamp = $representative->created_at?->timestamp ?? 0;
+
+            return $representative;
+        })->values();
+
+        if ($search !== '') {
+            $term = mb_strtolower($search);
+            $groups = $groups->filter(function ($group) use ($term) {
+                if (
+                    str_contains(mb_strtolower($group->display_title), $term)
+                    || str_contains(mb_strtolower($group->display_meta), $term)
+                    || str_contains(mb_strtolower($group->type_label), $term)
+                    || str_contains(mb_strtolower($group->group_status_label), $term)
+                ) {
+                    return true;
+                }
+
+                foreach ($group->group_items as $item) {
+                    if (
+                        str_contains(mb_strtolower($item['reporter']), $term)
+                        || str_contains(mb_strtolower($item['reason']), $term)
+                    ) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })->values();
+        }
+
+        $statusPriority = ['new' => 0, 'reviewed' => 1, 'resolved' => 2, 'dismissed' => 3];
+
+        $groups = $groups->sort(function ($a, $b) use ($sort, $statusPriority) {
+            if ($sort === 'most_reported') {
+                return ($b->report_count <=> $a->report_count)
+                    ?: ($b->active_count <=> $a->active_count)
+                    ?: ($b->latest_timestamp <=> $a->latest_timestamp);
+            }
+
+            if ($sort === 'priority') {
+                $pa = $statusPriority[$a->group_status] ?? 4;
+                $pb = $statusPriority[$b->group_status] ?? 4;
+
+                return ($pa <=> $pb)
+                    ?: ($b->report_count <=> $a->report_count)
+                    ?: ($b->latest_timestamp <=> $a->latest_timestamp);
+            }
+
+            return $b->latest_timestamp <=> $a->latest_timestamp;
+        })->values();
+
+        $perPage = 15;
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $pagedItems = $groups->slice(($page - 1) * $perPage, $perPage)->values();
+
+        $reports = (new LengthAwarePaginator(
+            $pagedItems,
+            $groups->count(),
+            $perPage,
+            $page,
+            ['path' => route('admin.reports.index')]
+        ))->withQueryString();
+
+        return view('admin.reports', compact(
+            'reports',
+            'sidebarStats',
+            'statusFilter',
+            'typeFilter',
+            'sort',
+            'search',
+            'statusCounts',
+            'typeCounts'
+        ));
+    }
+
+    private function formatReportTargetMeta(Report $report, $target): array
+    {
+        $title = 'Konten tidak tersedia';
+        $meta = 'Target sudah tidak tersedia';
+        $targetUrl = null;
+        $canDeleteTarget = $target !== null;
+
+        if ($report->reportable_type === 'community' && $target) {
+            $title = 'c/' . $target->name;
+            $creator = $target->creator?->name ?? 'Administrator';
+            $meta = 'dibuat oleh ' . $creator;
+            $targetUrl = route('communities.show', $target->name);
+        } elseif ($report->reportable_type === 'post' && $target) {
+            $title = '"' . $target->title . '"';
+            $comm = $target->community ? 'c/' . $target->community->name : 'Postingan umum';
+            $authorName = $target->user?->name ?? 'Pengguna';
+            $meta = $comm . ' · oleh ' . $authorName;
+            $targetUrl = route('posts.show', $target);
+        } elseif ($report->reportable_type === 'comment' && $target) {
+            $postTitle = $target->post?->title ?? 'Postingan';
+            $title = 'Komentar pada "' . str($postTitle)->limit(38) . '"';
+            $comm = $target->post?->community ? 'c/' . $target->post->community->name : 'Postingan umum';
+            $snippet = $target->deleted_at ? '[Komentar telah dihapus]' : '"' . str($target->content)->limit(55) . '"';
+            $meta = $comm . ' · ' . $snippet;
+            $targetUrl = $target->post ? route('posts.show', $target->post) : null;
+            $canDeleteTarget = $target->deleted_at === null;
+        } elseif ($report->reportable_type === 'user' && $target) {
+            $title = $target->username ? '@' . $target->username : $target->name;
+            $meta = $target->name;
+            $targetUrl = $target->username ? route('profile.show', ['user' => $target->username]) : null;
+            $canDeleteTarget = ! $target->isAdmin() && $target->id !== Auth::id();
+        }
+
+        return [
+            'display_title' => $title,
+            'display_meta' => $meta,
+            'target_url' => $targetUrl,
+            'can_delete_target' => $canDeleteTarget,
+        ];
     }
 
     public function reviewReport(Request $request, Report $report)
     {
         $validated = $request->validate([
-            'status' => ['required', 'in:reviewed,resolved,dismissed'],
+            'status'         => ['required', 'in:reviewed,resolved,dismissed'],
+            'apply_to_group' => ['sometimes', 'boolean'],
         ]);
 
-        $report->update([
+        $payload = [
             'status'      => $validated['status'],
             'reviewed_by' => Auth::id(),
             'reviewed_at' => now(),
-        ]);
+        ];
+
+        $updatedCount = 1;
+
+        if ($request->boolean('apply_to_group', false)) {
+            $groupQuery = Report::where('reportable_type', $report->reportable_type)
+                ->where('reportable_id', $report->reportable_id);
+
+            $activeQuery = (clone $groupQuery)->whereIn('status', ['new', 'reviewed']);
+            $updatedCount = $activeQuery->count() > 0
+                ? $activeQuery->update($payload)
+                : $groupQuery->update($payload);
+
+            $report->refresh();
+        } else {
+            $report->update($payload);
+        }
+
+        $msg = $updatedCount > 1
+            ? "{$updatedCount} laporan untuk target ini diperbarui menjadi {$report->status_label}."
+            : "Status laporan #{$report->id} diperbarui menjadi {$report->status_label}.";
 
         return response()->json([
-            'success'      => true,
-            'status'       => $report->status,
-            'status_label' => $report->status_label,
-            'message'      => "Status laporan #{$report->id} diperbarui menjadi {$report->status_label}.",
+            'success'       => true,
+            'status'        => $report->status,
+            'status_label'  => $report->status_label,
+            'updated_count' => $updatedCount,
+            'message'       => $msg,
         ]);
     }
 
     public function deleteReport(Request $request, Report $report)
     {
         $deleteTarget = $request->boolean('delete_target', false);
+        $applyToGroup = $request->boolean('apply_to_group', false);
 
         if ($deleteTarget) {
             $target = $report->resolveTarget();
@@ -503,13 +711,25 @@ class AdminController extends Controller
             }
         }
 
-        $report->delete();
+        if ($applyToGroup) {
+            $deletedCount = Report::where('reportable_type', $report->reportable_type)
+                ->where('reportable_id', $report->reportable_id)
+                ->delete();
+        } else {
+            $report->delete();
+            $deletedCount = 1;
+        }
+
+        $message = $deleteTarget
+            ? 'Target pelanggaran dan laporan berhasil ditindak.'
+            : ($deletedCount > 1
+                ? "{$deletedCount} laporan untuk target ini berhasil dihapus."
+                : 'Laporan berhasil dihapus.');
 
         return response()->json([
-            'success' => true,
-            'message' => $deleteTarget
-                ? 'Target pelanggaran dan laporan berhasil ditindak.'
-                : 'Laporan berhasil dihapus.',
+            'success'       => true,
+            'deleted_count' => $deletedCount,
+            'message'       => $message,
         ]);
     }
 

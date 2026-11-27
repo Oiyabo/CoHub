@@ -7,6 +7,62 @@
 
     @include('admin.partials.header')
 
+    @php
+        $statusFilter = $statusFilter ?? 'all';
+        $typeFilter = $typeFilter ?? 'all';
+        $sort = $sort ?? 'latest';
+        $search = $search ?? '';
+        $statusCounts = $statusCounts ?? ['all' => 0, 'new' => 0, 'reviewed' => 0, 'resolved' => 0, 'dismissed' => 0];
+        $typeCounts = $typeCounts ?? ['all' => 0, 'post' => 0, 'comment' => 0, 'user' => 0, 'community' => 0];
+
+        $statusTabs = [
+            'all' => 'Semua',
+            'new' => 'Baru',
+            'reviewed' => 'Ditinjau',
+            'resolved' => 'Selesai',
+            'dismissed' => 'Diabaikan',
+        ];
+
+        $typeOptions = [
+            'all' => 'Semua Jenis',
+            'post' => 'Postingan',
+            'comment' => 'Komentar',
+            'user' => 'Pengguna',
+            'community' => 'Komunitas',
+        ];
+
+        $sortOptions = [
+            'latest' => 'Terbaru',
+            'most_reported' => 'Laporan Terbanyak',
+            'priority' => 'Prioritas Baru',
+        ];
+
+        $buildFilterUrl = function (array $overrides = []) use ($statusFilter, $typeFilter, $sort, $search) {
+            $params = [
+                'status' => $overrides['status'] ?? $statusFilter,
+                'type' => $overrides['type'] ?? $typeFilter,
+                'sort' => $overrides['sort'] ?? $sort,
+                'search' => $overrides['search'] ?? $search,
+            ];
+
+            $filtered = [];
+            if (($params['status'] ?? 'all') !== 'all') {
+                $filtered['status'] = $params['status'];
+            }
+            if (($params['type'] ?? 'all') !== 'all') {
+                $filtered['type'] = $params['type'];
+            }
+            if (($params['sort'] ?? 'latest') !== 'latest') {
+                $filtered['sort'] = $params['sort'];
+            }
+            if (trim((string) ($params['search'] ?? '')) !== '') {
+                $filtered['search'] = trim((string) $params['search']);
+            }
+
+            return route('admin.reports.index', $filtered);
+        };
+    @endphp
+
     <div class="space-y-4" x-data="reportManager()">
 
         <div x-show="flashMsg" x-transition
@@ -17,49 +73,125 @@
             <span x-text="flashMsg"></span>
         </div>
 
-        @php
-            $statusFilter = $statusFilter ?? 'all';
-            $typeFilter = $typeFilter ?? 'all';
-            $statusTabs = [
-                'all' => 'Semua Status',
-                'new' => 'Baru',
-                'reviewed' => 'Ditinjau',
-                'resolved' => 'Selesai',
-                'dismissed' => 'Diabaikan',
-            ];
-        @endphp
+        <form method="GET" action="{{ route('admin.reports.index') }}"
+              class="bg-white rounded-2xl border border-slate-200/80 px-4 py-2.5 shadow-2xs flex items-center gap-2.5">
+            @if($statusFilter !== 'all')
+                <input type="hidden" name="status" value="{{ $statusFilter }}">
+            @endif
+            @if($typeFilter !== 'all')
+                <input type="hidden" name="type" value="{{ $typeFilter }}">
+            @endif
+            @if($sort !== 'latest')
+                <input type="hidden" name="sort" value="{{ $sort }}">
+            @endif
+            <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="7" stroke-width="2"></circle>
+                <path d="m16 16 4 4" stroke-width="2" stroke-linecap="round"></path>
+            </svg>
+            <input type="text"
+                   name="search"
+                   value="{{ $search }}"
+                   placeholder="Cari target, @username, pelapor, atau alasan laporan..."
+                   class="w-full border-0 bg-transparent p-0 text-xs text-slate-800 placeholder-slate-400 focus:ring-0 focus:outline-none">
+            @if($search !== '' || $statusFilter !== 'all' || $typeFilter !== 'all' || $sort !== 'latest')
+                <a href="{{ route('admin.reports.index') }}" class="text-[11px] font-semibold text-slate-400 hover:text-slate-600 shrink-0">Reset</a>
+            @endif
+        </form>
 
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="bg-slate-100/80 p-1 rounded-xl flex flex-wrap items-center gap-1">
+        <div class="flex flex-wrap items-center justify-between gap-2.5">
+            <div class="inline-flex items-center gap-1 bg-slate-200/70 p-1 rounded-2xl flex-wrap">
                 @foreach($statusTabs as $statusKey => $statusLabel)
-                    <a href="{{ route('admin.reports.index', array_filter(['status' => $statusKey === 'all' ? null : $statusKey, 'type' => $typeFilter === 'all' ? null : $typeFilter])) }}"
-                       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all {{ $statusFilter === $statusKey ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900' }}">
-                        {{ $statusLabel }}
+                    @php
+                        $countVal = $statusCounts[$statusKey] ?? 0;
+                        $isActive = $statusFilter === $statusKey;
+                    @endphp
+                    <a href="{{ $buildFilterUrl(['status' => $statusKey]) }}"
+                       class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-1.5 {{ $isActive ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900' }}">
+                        <span>{{ $statusLabel }}</span>
+                        @if($countVal > 0)
+                            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none {{ $statusKey === 'new' ? 'bg-rose-100 text-rose-700' : ($isActive ? 'bg-slate-100 text-slate-700' : 'bg-white/70 text-slate-600') }}">
+                                {{ $countVal }}
+                            </span>
+                        @endif
                     </a>
                 @endforeach
             </div>
 
-            <form method="GET" action="{{ route('admin.reports.index') }}" class="flex items-center gap-2">
-                @if($statusFilter !== 'all')
-                    <input type="hidden" name="status" value="{{ $statusFilter }}">
-                @endif
-                <select name="type"
-                        onchange="this.form.submit()"
-                        aria-label="Filter jenis target laporan"
-                        class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
-                    <option value="all" {{ $typeFilter === 'all' ? 'selected' : '' }}>Semua Jenis</option>
-                    <option value="post" {{ $typeFilter === 'post' ? 'selected' : '' }}>Postingan</option>
-                    <option value="comment" {{ $typeFilter === 'comment' ? 'selected' : '' }}>Komentar</option>
-                    <option value="user" {{ $typeFilter === 'user' ? 'selected' : '' }}>Pengguna</option>
-                    <option value="community" {{ $typeFilter === 'community' ? 'selected' : '' }}>Komunitas</option>
-                </select>
-            </form>
+            <div class="flex items-center gap-2 flex-wrap">
+                <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button type="button"
+                            @click="open = !open"
+                            class="px-3.5 py-2 rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 text-xs font-semibold text-slate-700 shadow-2xs inline-flex items-center gap-2 cursor-pointer transition-colors">
+                        <span>{{ $typeOptions[$typeFilter] ?? 'Semua Jenis' }}</span>
+                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none bg-slate-100 text-slate-600">
+                            {{ $typeCounts[$typeFilter] ?? 0 }}
+                        </span>
+                        <svg class="w-3.5 h-3.5 text-slate-400 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"></path>
+                        </svg>
+                    </button>
+
+                    <div x-show="open"
+                         x-transition
+                         style="display: none;"
+                         class="absolute right-0 mt-1.5 w-48 bg-white rounded-2xl border border-slate-200/90 shadow-lg py-1.5 z-30">
+                        @foreach($typeOptions as $typeKey => $typeLabel)
+                            <a href="{{ $buildFilterUrl(['type' => $typeKey]) }}"
+                               class="px-3.5 py-2 text-xs flex items-center justify-between gap-2 transition-colors {{ $typeFilter === $typeKey ? 'bg-blue-50/70 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-50 font-medium' }}">
+                                <span>{{ $typeLabel }}</span>
+                                <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+                                    {{ $typeCounts[$typeKey] ?? 0 }}
+                                </span>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button type="button"
+                            @click="open = !open"
+                            class="px-3.5 py-2 rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 text-xs font-semibold text-slate-700 shadow-2xs inline-flex items-center gap-1.5 cursor-pointer transition-colors">
+                        <span class="text-slate-400 font-medium">Urutkan:</span>
+                        <span>{{ $sortOptions[$sort] ?? 'Terbaru' }}</span>
+                        <svg class="w-3.5 h-3.5 text-slate-400 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"></path>
+                        </svg>
+                    </button>
+
+                    <div x-show="open"
+                         x-transition
+                         style="display: none;"
+                         class="absolute right-0 mt-1.5 w-44 bg-white rounded-2xl border border-slate-200/90 shadow-lg py-1.5 z-30">
+                        @foreach($sortOptions as $sortKey => $sortLabel)
+                            <a href="{{ $buildFilterUrl(['sort' => $sortKey]) }}"
+                               class="block px-3.5 py-2 text-xs transition-colors {{ $sort === $sortKey ? 'bg-blue-50/70 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-50 font-medium' }}">
+                                {{ $sortLabel }}
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-2xs overflow-hidden">
             @forelse($reports as $report)
                 @php
-                    $statusClasses = match ($report->status) {
+                    $effectiveStatus = $report->group_status ?? $report->status;
+                    $effectiveStatusLabel = $report->group_status_label ?? $report->status_label;
+                    $reportCount = (int) ($report->report_count ?? 1);
+                    $uniqueReporters = (int) ($report->unique_reporters_count ?? 1);
+                    $distinctReasons = (int) ($report->distinct_reasons_count ?? 1);
+                    $groupItems = $report->group_items ?? [[
+                        'id' => $report->id,
+                        'reporter' => $report->reporter_display ?? ($report->reporter?->name ?? 'Sistem'),
+                        'reason' => $report->reason,
+                        'status' => $report->status,
+                        'status_label' => $report->status_label,
+                        'reported_at_human' => $report->reported_at_human ?? ($report->created_at?->locale('id')->diffForHumans() ?? '-'),
+                        'reported_at_formatted' => $report->reported_at_formatted ?? ($report->created_at?->format('d M Y, H:i') ?? '-'),
+                    ]];
+
+                    $statusClasses = match ($effectiveStatus) {
                         'new' => 'bg-rose-50 text-rose-600',
                         'reviewed' => 'bg-amber-50 text-amber-700',
                         'resolved' => 'bg-emerald-50 text-emerald-700',
@@ -75,19 +207,27 @@
                                 {{ $report->type_label }}
                             </span>
                             <span id="report-status-{{ $report->id }}" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold {{ $statusClasses }}">
-                                {{ $report->status_label }}
+                                {{ $effectiveStatusLabel }}
                             </span>
+                            @if($reportCount > 1)
+                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700">
+                                    {{ $reportCount }} laporan
+                                </span>
+                            @endif
                             <span class="text-[11px] text-slate-400" title="{{ $report->reported_at_formatted ?? '' }}">
-                                {{ $report->reported_at_human ?? $report->created_at?->diffForHumans() }} · {{ $report->reported_at_formatted ?? $report->created_at?->format('d M Y, H:i') }}
+                                {{ $report->reported_at_human ?? $report->created_at?->locale('id')->diffForHumans() }} · {{ $report->reported_at_formatted ?? $report->created_at?->format('d M Y, H:i') }}
                             </span>
                         </div>
 
                         <p class="text-sm font-bold text-slate-900 truncate">{{ $report->display_title }}</p>
                         <p class="text-xs text-slate-600 mt-0.5 line-clamp-2">
                             <span class="font-semibold text-slate-700">Alasan:</span> {{ $report->reason }}
+                            @if($distinctReasons > 1)
+                                <span class="text-[11px] font-semibold text-blue-600">(+{{ $distinctReasons - 1 }} alasan lainnya)</span>
+                            @endif
                         </p>
                         <p class="text-[11px] text-slate-400 truncate mt-1">
-                            Pelapor: <span class="font-medium text-slate-600">{{ $report->reporter_display ?? ($report->reporter?->name ?? 'Sistem') }}</span> · {{ $report->display_meta }}
+                            Pelapor: <span class="font-medium text-slate-600">{{ $report->reporter_display ?? ($report->reporter?->name ?? 'Sistem') }}</span>@if($reportCount > 1 && $uniqueReporters > 1) &amp; {{ $uniqueReporters - 1 }} lainnya @endif · {{ $report->display_meta }}
                         </p>
                     </div>
 
@@ -96,15 +236,18 @@
                                 @click="openReview({
                                     id: {{ $report->id }},
                                     typeLabel: @js($report->type_label),
+                                    statusLabel: @js($effectiveStatusLabel),
+                                    status: @js($effectiveStatus),
                                     title: @js($report->display_title),
                                     meta: @js($report->display_meta),
                                     reason: @js($report->reason),
                                     reporter: @js($report->reporter_display ?? ($report->reporter?->name ?? 'Sistem')),
                                     reportedAt: @js(($report->reported_at_formatted ?? '-') . ' (' . ($report->reported_at_human ?? '-') . ')'),
                                     targetUrl: @js($report->target_url ?? ''),
-                                    status: @js($report->status)
+                                    reportCount: {{ $reportCount }},
+                                    items: @js($groupItems)
                                 })"
-                                class="px-3.5 py-1 rounded-full text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 transition-colors cursor-pointer">
+                                class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 transition-colors cursor-pointer">
                             Tinjau
                         </button>
 
@@ -113,16 +256,17 @@
                                     id: {{ $report->id }},
                                     title: @js($report->display_title),
                                     typeLabel: @js($report->type_label),
-                                    canDeleteTarget: {{ $report->can_delete_target ? 'true' : 'false' }}
+                                    canDeleteTarget: {{ $report->can_delete_target ? 'true' : 'false' }},
+                                    reportCount: {{ $reportCount }}
                                 })"
-                                class="px-3.5 py-1 rounded-full text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors cursor-pointer">
+                                class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors cursor-pointer">
                             Hapus
                         </button>
                     </div>
                 </div>
             @empty
                 <div class="px-5 py-10 text-center text-xs text-slate-400">
-                    Tidak ada laporan yang sesuai dengan filter saat ini.
+                    Tidak ada laporan yang sesuai dengan filter atau pencarian saat ini.
                 </div>
             @endforelse
         </div>
@@ -138,27 +282,41 @@
              class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
              style="display: none;">
             <div @click.away="reviewModalOpen = false"
-                 class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-                <div class="flex items-center gap-2 mb-1 flex-wrap">
-                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600" x-text="selectedReport.typeLabel"></span>
-                    <span class="text-xs text-slate-500" x-text="'Pelapor: ' + selectedReport.reporter"></span>
+                 class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
+                <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600" x-text="selectedReport.typeLabel"></span>
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700"
+                              x-show="(selectedReport.reportCount || 1) > 1"
+                              x-text="(selectedReport.reportCount || 1) + ' laporan terkelompok'"></span>
+                    </div>
+                    <template x-if="selectedReport.targetUrl">
+                        <a :href="selectedReport.targetUrl" target="_blank"
+                           class="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline">
+                            Buka target →
+                        </a>
+                    </template>
                 </div>
-                <p class="text-[11px] text-slate-400 mb-3" x-text="'Dilaporkan: ' + selectedReport.reportedAt"></p>
 
-                <h3 class="text-base font-extrabold text-slate-900" x-text="selectedReport.title"></h3>
+                <h3 class="text-base font-extrabold text-slate-900 break-words" x-text="selectedReport.title"></h3>
                 <p class="text-xs text-slate-500 mt-1 leading-relaxed" x-text="selectedReport.meta"></p>
 
-                <div class="mt-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                    <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Alasan Laporan</p>
-                    <p class="text-xs text-slate-700 mt-1 leading-relaxed" x-text="selectedReport.reason"></p>
+                <div class="mt-4 space-y-2 max-h-60 overflow-y-auto pr-1">
+                    <template x-for="item in (selectedReport.items || [])" :key="item.id">
+                        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                            <div class="flex items-center justify-between gap-2 flex-wrap mb-1">
+                                <span class="text-xs font-bold text-slate-800" x-text="item.reporter"></span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                                          :class="badgeClassFor(item.status)"
+                                          x-text="item.status_label"></span>
+                                    <span class="text-[11px] text-slate-400" x-text="item.reported_at_formatted"></span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed" x-text="item.reason"></p>
+                        </div>
+                    </template>
                 </div>
-
-                <template x-if="selectedReport.targetUrl">
-                    <a :href="selectedReport.targetUrl" target="_blank"
-                       class="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-blue-600 hover:underline">
-                        Buka halaman target →
-                    </a>
-                </template>
 
                 <div class="flex items-center justify-end gap-2 mt-6 flex-wrap">
                     <button type="button"
@@ -196,8 +354,18 @@
                     Laporan ini akan dihapus dari daftar tinjauan. Anda juga dapat langsung menindak konten atau akun terkait.
                 </p>
 
-                <template x-if="deleteTarget.canDeleteTarget">
+                <template x-if="(deleteTarget.reportCount || 1) > 1">
                     <label class="flex items-center gap-2.5 mt-4 cursor-pointer select-none">
+                        <input type="checkbox"
+                               x-model="deleteAlsoGroup"
+                               class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-xs font-medium text-slate-700"
+                              x-text="'Hapus semua ' + deleteTarget.reportCount + ' laporan untuk target ini sekaligus'"></span>
+                    </label>
+                </template>
+
+                <template x-if="deleteTarget.canDeleteTarget">
+                    <label class="flex items-center gap-2.5 mt-3 cursor-pointer select-none">
                         <input type="checkbox"
                                x-model="deleteAlsoTarget"
                                class="w-4 h-4 rounded border-slate-300 text-red-600 focus:ring-red-500">
@@ -230,9 +398,20 @@
                 selectedReport: {},
                 deleteTarget: {},
                 deleteAlsoTarget: false,
+                deleteAlsoGroup: true,
                 flashMsg: '',
                 flashType: 'success',
                 flashTimeout: null,
+
+                badgeClassFor(status) {
+                    const map = {
+                        resolved: 'bg-emerald-50 text-emerald-700',
+                        reviewed: 'bg-amber-50 text-amber-700',
+                        dismissed: 'bg-slate-100 text-slate-600',
+                        new: 'bg-rose-50 text-rose-600',
+                    };
+                    return map[status] || 'bg-slate-100 text-slate-600';
+                },
 
                 openReview(report) {
                     this.selectedReport = report;
@@ -242,11 +421,13 @@
                 openDelete(target) {
                     this.deleteTarget = target;
                     this.deleteAlsoTarget = false;
+                    this.deleteAlsoGroup = (target.reportCount || 1) > 1;
                     this.deleteModalOpen = true;
                 },
 
                 async submitReview(status) {
                     const id = this.selectedReport.id;
+                    const applyToGroup = (this.selectedReport.reportCount || 1) > 1;
                     this.reviewModalOpen = false;
 
                     try {
@@ -257,21 +438,15 @@
                                 'Accept': 'application/json',
                                 'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify({ status }),
+                            body: JSON.stringify({ status, apply_to_group: applyToGroup }),
                         });
                         const data = await res.json();
 
                         if (res.ok && data.success) {
                             const badge = document.getElementById(`report-status-${id}`);
                             if (badge) {
-                                const badgeClasses = {
-                                    resolved: 'bg-emerald-50 text-emerald-700',
-                                    reviewed: 'bg-amber-50 text-amber-700',
-                                    dismissed: 'bg-slate-100 text-slate-600',
-                                    new: 'bg-rose-50 text-rose-600',
-                                };
                                 badge.innerText = data.status_label;
-                                badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-semibold ' + (badgeClasses[status] || 'bg-slate-100 text-slate-600');
+                                badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-semibold ' + this.badgeClassFor(status);
                             }
                             this.showFlash(data.message, 'success');
                         } else {
@@ -284,6 +459,7 @@
 
                 async executeDelete() {
                     const id = this.deleteTarget.id;
+                    const applyToGroup = (this.deleteTarget.reportCount || 1) > 1 && this.deleteAlsoGroup;
                     this.deleteModalOpen = false;
 
                     try {
@@ -294,18 +470,25 @@
                                 'Accept': 'application/json',
                                 'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify({ delete_target: this.deleteAlsoTarget }),
+                            body: JSON.stringify({
+                                delete_target: this.deleteAlsoTarget,
+                                apply_to_group: applyToGroup,
+                            }),
                         });
                         const data = await res.json();
 
                         if (res.ok && data.success) {
-                            const row = document.getElementById(`report-row-${id}`);
-                            if (row) {
-                                row.style.transition = 'opacity 0.25s';
-                                row.style.opacity = '0';
-                                setTimeout(() => row.remove(), 250);
-                            }
                             this.showFlash(data.message, 'success');
+                            if (!applyToGroup && (this.deleteTarget.reportCount || 1) > 1 && !this.deleteAlsoTarget) {
+                                setTimeout(() => window.location.reload(), 650);
+                            } else {
+                                const row = document.getElementById(`report-row-${id}`);
+                                if (row) {
+                                    row.style.transition = 'opacity 0.25s';
+                                    row.style.opacity = '0';
+                                    setTimeout(() => row.remove(), 250);
+                                }
+                            }
                         } else {
                             this.showFlash(data.message || 'Gagal menghapus laporan.', 'error');
                         }

@@ -509,6 +509,98 @@ class VotingAndAdminTest extends TestCase
         $this->assertSame($commentReport->id, Report::where('status', 'resolved')->first()?->id);
     }
 
+    public function test_admin_reports_page_groups_reports_by_target_and_supports_search_sort_and_batch_actions(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $author = User::factory()->create(['name' => 'Target Author', 'username' => 'target_u']);
+        $reporterOne = User::factory()->create(['name' => 'Pelapor Pertama', 'username' => 'p_satu']);
+        $reporterTwo = User::factory()->create(['name' => 'Pelapor Kedua', 'username' => 'p_dua']);
+        $community = $this->createCommunity($author, 'komunitas-ramai');
+
+        $post = Post::create([
+            'user_id' => $author->id,
+            'community_id' => $community->id,
+            'title' => 'Postingan Spam Massal',
+            'content' => 'Konten bermasalah.',
+            'status' => 'published',
+        ]);
+
+        $otherPost = Post::create([
+            'user_id' => $author->id,
+            'community_id' => $community->id,
+            'title' => 'Postingan Tunggal',
+            'content' => 'Konten lain.',
+            'status' => 'published',
+        ]);
+
+        $r1 = Report::create([
+            'reporter_id' => $reporterOne->id,
+            'reportable_type' => 'post',
+            'reportable_id' => $post->id,
+            'reason' => 'Tautan penipuan',
+            'status' => 'new',
+        ]);
+
+        $r2 = Report::create([
+            'reporter_id' => $reporterTwo->id,
+            'reportable_type' => 'post',
+            'reportable_id' => $post->id,
+            'reason' => 'Spam promosi berulang',
+            'status' => 'new',
+        ]);
+
+        $r3 = Report::create([
+            'reporter_id' => $reporterOne->id,
+            'reportable_type' => 'post',
+            'reportable_id' => $otherPost->id,
+            'reason' => 'Judul menyesatkan',
+            'status' => 'resolved',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.reports.index', ['sort' => 'most_reported']));
+
+        $response->assertOk()
+            ->assertSee('Postingan Spam Massal')
+            ->assertSee('2 laporan')
+            ->assertSeeInOrder(['Postingan Spam Massal', 'Postingan Tunggal']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.reports.index', ['search' => 'Pelapor Kedua']))
+            ->assertOk()
+            ->assertSee('Postingan Spam Massal')
+            ->assertDontSee('Postingan Tunggal');
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.reports.review', $r2), [
+                'status' => 'resolved',
+                'apply_to_group' => true,
+            ])
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'status' => 'resolved',
+                'updated_count' => 2,
+            ]);
+
+        $this->assertSame('resolved', $r1->fresh()->status);
+        $this->assertSame('resolved', $r2->fresh()->status);
+
+        $this->actingAs($admin)
+            ->deleteJson(route('admin.reports.destroy', $r2), [
+                'apply_to_group' => true,
+            ])
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'deleted_count' => 2,
+            ]);
+
+        $this->assertDatabaseMissing('reports', ['id' => $r1->id]);
+        $this->assertDatabaseMissing('reports', ['id' => $r2->id]);
+        $this->assertDatabaseHas('reports', ['id' => $r3->id]);
+    }
+
     public function test_app_and_admin_pages_do_not_crash_when_new_admin_schema_is_missing(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
