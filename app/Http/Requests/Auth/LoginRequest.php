@@ -26,11 +26,6 @@ class LoginRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get custom attributes for validator errors.
-     *
-     * @return array<string, string>
-     */
     public function attributes(): array
     {
         return [
@@ -39,11 +34,6 @@ class LoginRequest extends FormRequest
         ];
     }
 
-    /**
-     * Attempt to authenticate the request's credentials.
-     *
-     * @throws ValidationException
-     */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
@@ -51,7 +41,6 @@ class LoginRequest extends FormRequest
         $login = trim((string) ($this->input('login') ?? $this->input('email')));
         $password = (string) $this->input('password');
 
-        // Cari pengguna berdasarkan email, username, atau nama
         $candidates = User::where('email', $login)
             ->orWhere('username', $login)
             ->orWhere('name', $login)

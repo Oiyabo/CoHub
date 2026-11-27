@@ -39,7 +39,7 @@ class Community extends Model
 
     public function isClosed(): bool
     {
-        return (bool) $this->is_closed;
+        return (bool) ($this->is_closed ?? false);
     }
 
     public function creator(): BelongsTo

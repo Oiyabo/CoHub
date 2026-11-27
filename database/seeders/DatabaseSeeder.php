@@ -6,8 +6,10 @@ use App\Models\Comment;
 use App\Models\CommentVote;
 use App\Models\Community;
 use App\Models\Post;
+use App\Models\Report;
 use App\Models\User;
 use App\Models\Vote;
+use App\Support\SafeSchema;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -141,6 +143,52 @@ class DatabaseSeeder extends Seeder
 
             CommentVote::firstOrCreate(['user_id' => $user1->id, 'comment_id' => $c1->id], ['vote_type' => 'upvote']);
             CommentVote::firstOrCreate(['user_id' => $user3->id, 'comment_id' => $c1->id], ['vote_type' => 'upvote']);
+        }
+
+        if (SafeSchema::hasTable('reports') && Report::count() === 0) {
+            $firstPost = Post::first();
+            $firstComment = Comment::first();
+            $firstCommunity = Community::first();
+
+            if ($firstCommunity) {
+                Report::create([
+                    'reporter_id'     => $user3->id,
+                    'reportable_type' => 'community',
+                    'reportable_id'   => $firstCommunity->id,
+                    'reason'          => 'Terindikasi spam berulang tanpa moderasi',
+                    'status'          => 'new',
+                ]);
+            }
+
+            if ($firstPost) {
+                Report::create([
+                    'reporter_id'     => $user2->id,
+                    'reportable_type' => 'post',
+                    'reportable_id'   => $firstPost->id,
+                    'reason'          => 'Konten promosi di luar topik komunitas',
+                    'status'          => 'new',
+                ]);
+            }
+
+            if ($firstComment) {
+                Report::create([
+                    'reporter_id'     => $user1->id,
+                    'reportable_type' => 'comment',
+                    'reportable_id'   => $firstComment->id,
+                    'reason'          => 'Bahasa kurang santun dalam diskusi',
+                    'status'          => 'reviewed',
+                    'reviewed_by'     => $admin->id,
+                    'reviewed_at'     => now(),
+                ]);
+            }
+
+            Report::create([
+                'reporter_id'     => $user1->id,
+                'reportable_type' => 'user',
+                'reportable_id'   => $user2->id,
+                'reason'          => 'Spam di beberapa komunitas',
+                'status'          => 'new',
+            ]);
         }
     }
 }

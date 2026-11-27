@@ -26,7 +26,7 @@
 
             @php
                 $myCommunities = auth()->check()
-                    ? auth()->user()->joinedCommunities()->where('communities.is_closed', false)->orderBy('communities.name')->get()
+                    ? auth()->user()->joinedCommunities()->orderBy('communities.name')->get()->reject(fn ($c) => $c->isClosed())->values()
                     : collect();
 
                 $joinedIds = $myCommunities->pluck('id')->map(fn ($id) => (string) $id)->values();

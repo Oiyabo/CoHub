@@ -54,6 +54,10 @@ class PostFeed
     {
         $user = $user ?? auth()->user();
 
+        if (SafeSchema::hasColumn('users', 'posts_hidden')) {
+            $query->whereHas('user', fn ($u) => $u->where('posts_hidden', false));
+        }
+
         $query->where(function (Builder $q) use ($user) {
             $q->whereHas('community', fn($c) => $c->where('is_private', false))
                 ->orWhereNull('community_id');

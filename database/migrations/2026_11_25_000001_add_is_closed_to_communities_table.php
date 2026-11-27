@@ -8,15 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('communities', function (Blueprint $table) {
-            $table->boolean('is_closed')->default(false);
-        });
+        if (Schema::hasTable('communities') && ! Schema::hasColumn('communities', 'is_closed')) {
+            Schema::table('communities', function (Blueprint $table) {
+                $table->boolean('is_closed')->default(false);
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('communities', function (Blueprint $table) {
-            $table->dropColumn('is_closed');
-        });
+        if (Schema::hasTable('communities') && Schema::hasColumn('communities', 'is_closed')) {
+            Schema::table('communities', function (Blueprint $table) {
+                $table->dropColumn('is_closed');
+            });
+        }
     }
 };

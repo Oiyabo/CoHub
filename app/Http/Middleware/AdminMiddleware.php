@@ -18,7 +18,7 @@ class AdminMiddleware
             abort(403, 'Akses ditolak. Hanya Admin yang diizinkan.');
         }
 
-        if (auth()->user()->is_blocked) {
+        if (auth()->user()->isBlocked()) {
             auth()->logout();
             return redirect()->route('login')->withErrors(['email' => 'Akun Anda telah diblokir.']);
         }

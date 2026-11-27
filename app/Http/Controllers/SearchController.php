@@ -6,6 +6,7 @@ use App\Models\Community;
 use App\Models\Post;
 use App\Models\User;
 use App\Support\PostFeed;
+use App\Support\SafeSchema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -26,11 +27,12 @@ class SearchController extends Controller
         $tab = $validated['tab'] ?? 'posts';
         $user = $request->user();
 
-        // 1. Pencarian postingan
+        $communitySelect = 'community:id,name,is_private' . (SafeSchema::hasColumn('communities', 'is_closed') ? ',is_closed' : '');
+
         $postsQuery = Post::query()
             ->with([
                 'user:id,name,username',
-                'community:id,name,is_private,is_closed',
+                $communitySelect,
             ])
             ->withCount('comments')
             ->where('status', 'published');
@@ -92,9 +94,8 @@ class SearchController extends Controller
             ->paginate(10, ['*'], 'communities_page')
             ->withQueryString();
 
-        // 3. Pencarian pengguna
         $usersQuery = User::query()
-            ->where('is_blocked', false)
+            ->when(SafeSchema::hasColumn('users', 'is_blocked'), fn ($q) => $q->where('is_blocked', false))
             ->whereNotNull('username');
 
         if ($term !== '') {
