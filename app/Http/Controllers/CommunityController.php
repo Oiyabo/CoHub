@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateCommunityAboutRequest;
 use App\Http\Requests\CommunityRuleRequest;
 use App\Http\Requests\AddModeratorRequest;
 use App\Models\Community;
+use App\Models\Report;
 use App\Models\User;
 use App\Models\CommunityMember;
 use App\Notifications\ModerationNotification;
@@ -115,6 +116,32 @@ class CommunityController extends Controller
 
         $rules = $community->rules ?? [];
         $about = $community->about ?? $community->description;
+        $openModerationCount = 0;
+
+        if ($user && ($user->isAdmin() || $user->isAuthorizedOf($community->id)) && SafeSchema::hasTable('reports')) {
+            $openModerationCount = Report::whereIn('status', ['new', 'reviewed'])
+                ->where(function ($q) use ($community) {
+                    $q->where(function ($sub) use ($community) {
+                        $sub->where('reportable_type', 'post')
+                            ->whereExists(function ($exists) use ($community) {
+                                $exists->selectRaw('1')
+                                    ->from('posts')
+                                    ->whereColumn('posts.id', 'reports.reportable_id')
+                                    ->where('posts.community_id', $community->id);
+                            });
+                    })->orWhere(function ($sub) use ($community) {
+                        $sub->where('reportable_type', 'comment')
+                            ->whereExists(function ($exists) use ($community) {
+                                $exists->selectRaw('1')
+                                    ->from('comments')
+                                    ->join('posts', 'posts.id', '=', 'comments.post_id')
+                                    ->whereColumn('comments.id', 'reports.reportable_id')
+                                    ->where('posts.community_id', $community->id);
+                            });
+                    });
+                })
+                ->count();
+        }
 
         return view('communities.show', compact(
             'community',
@@ -124,7 +151,8 @@ class CommunityController extends Controller
             'moderators',
             'members',
             'rules',
-            'about'
+            'about',
+            'openModerationCount'
         ));
     }
 

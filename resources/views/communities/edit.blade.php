@@ -297,6 +297,12 @@
                     </span>
                 </div>
 
+                <a href="{{ route('communities.moderation.index', $community->name) }}"
+                    class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition shadow-2xs">
+                    <span>Ruang Moderasi</span>
+                    <span class="text-blue-400">&rarr;</span>
+                </a>
+
                 <a href="{{ route('communities.show', $community->name) }}"
                     class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 transition shadow-2xs">
                     <span>Lihat Komunitas</span>

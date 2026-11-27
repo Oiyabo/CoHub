@@ -54,4 +54,9 @@ class CommunityPolicy
     {
         return $user->isAuthorizedOf($community->id);
     }
+
+    public function moderate(User $user, Community $community): bool
+    {
+        return $user->isAuthorizedOf($community->id);
+    }
 }
