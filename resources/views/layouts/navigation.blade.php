@@ -197,9 +197,14 @@
 
                             <div class="w-8 h-8 rounded-xl
                                 {{ $isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700' }}
-                                flex items-center justify-center font-bold text-xs shrink-0">
+                                flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
 
-                                {{ $initials }}
+                                @if(Auth::user()->avatar_url)
+                                    <img src="{{ Auth::user()->avatar_url }}" alt="{{ Auth::user()->name }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                    <span style="display: none;">{{ $initials }}</span>
+                                @else
+                                    <span>{{ $initials }}</span>
+                                @endif
                             </div>
 
                             <div class="hidden lg:flex flex-col text-left leading-tight">

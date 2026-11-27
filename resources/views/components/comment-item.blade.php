@@ -21,6 +21,18 @@
             </p>
         @else
             <div class="flex items-center gap-2 flex-wrap mb-1">
+                @php
+                    $commentUser = $comment->user;
+                    $commentInitials = $commentUser ? strtoupper(substr($commentUser->name, 0, 2)) : '?';
+                @endphp
+                <div class="w-5 h-5 rounded-md bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] overflow-hidden shrink-0">
+                    @if($commentUser && $commentUser->avatar_url)
+                        <img src="{{ $commentUser->avatar_url }}" alt="{{ $commentUser->name }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                        <span style="display: none;">{{ $commentInitials }}</span>
+                    @else
+                        <span>{{ $commentInitials }}</span>
+                    @endif
+                </div>
 
                 @if($comment->user && $comment->user->username)
                     <a href="{{ route('profile.show', ['user' => $comment->user->username]) }}"
@@ -78,12 +90,20 @@
                                           rows="2"
                                           required
                                           maxlength="5000"
+                                          data-original-content="{{ $comment->content }}"
                                           class="w-full text-xs rounded-lg border-slate-200 focus:border-blue-400 focus:ring-blue-400">{{ $comment->content }}</textarea>
 
-                                <button type="submit"
-                                        class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
-                                    Simpan Perubahan
-                                </button>
+                                <div class="flex items-center gap-2">
+                                    <button type="submit"
+                                            class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+                                        Simpan Perubahan
+                                    </button>
+                                    <button type="button"
+                                            data-comment-cancel="edit"
+                                            class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                                        Batal
+                                    </button>
+                                </div>
                             </form>
                         </details>
                     @endcan
@@ -128,10 +148,17 @@
                                   placeholder="Tulis balasanmu..."
                                   class="w-full text-xs rounded-lg border-slate-200 focus:border-blue-400 focus:ring-blue-400"></textarea>
 
-                        <button type="submit"
-                                class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
-                            Kirim Balasan
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="submit"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+                                Kirim Balasan
+                            </button>
+                            <button type="button"
+                                    data-comment-cancel="reply"
+                                    class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                                Batal
+                            </button>
+                        </div>
                     </form>
                 </details>
             @endauth
@@ -142,18 +169,18 @@
     <div data-replies-container>
         @if($comment->replies->isNotEmpty())
             <div class="mt-2"
-                 x-data="{ open: true }"
+                 x-data="{ open: false, count: {{ $comment->replies->count() }} }"
                  data-replies-group>
 
                 <button type="button"
-                        class="text-[11px] text-slate-500 font-semibold cursor-pointer flex items-center gap-1"
+                        class="text-[11px] text-slate-500 font-semibold cursor-pointer flex items-center gap-1 hover:text-slate-700 transition-colors"
                         @click="open = !open"
                         :aria-expanded="open">
 
                     <span x-text="open ? '▼' : '▶'"></span>
 
-                    <span data-replies-count>
-                        {{ $comment->replies->count() }} Balasan
+                    <span data-replies-count x-text="open ? 'Sembunyikan balasan' : 'Lihat ' + count + ' balasan'">
+                        Lihat {{ $comment->replies->count() }} balasan
                     </span>
                 </button>
 

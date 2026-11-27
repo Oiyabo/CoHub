@@ -31,17 +31,33 @@
 
                 </div>
 
-                <!-- TANDAI SEMUA DIBACA -->
-                @if($unreadCount > 0)
-                    <form action="{{ route('notifications.read-all') }}" method="POST">
-                        @csrf
+                <div class="flex items-center gap-2 flex-wrap">
+                    <!-- TANDAI SEMUA DIBACA -->
+                    @if($unreadCount > 0)
+                        <form action="{{ route('notifications.read-all') }}" method="POST">
+                            @csrf
 
-                        <button type="submit"
-                            class="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors">
-                            Tandai semua dibaca
-                        </button>
-                    </form>
-                @endif
+                            <button type="submit"
+                                class="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors">
+                                Tandai semua dibaca
+                            </button>
+                        </form>
+                    @endif
+
+                    <!-- HAPUS SEMUA YANG SUDAH DIBACA -->
+                    @if(isset($readCount) && $readCount > 0)
+                        <form action="{{ route('notifications.destroy-all-read') }}" method="POST"
+                              onsubmit="return confirm('Apakah kamu yakin ingin menghapus semua notifikasi yang sudah dibaca?')">
+                            @csrf
+                            @method('DELETE')
+
+                            <button type="submit"
+                                class="text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors">
+                                Hapus yang sudah dibaca
+                            </button>
+                        </form>
+                    @endif
+                </div>
 
             </div>
         </section>
@@ -50,6 +66,12 @@
         @if(session('success'))
             <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-700">
                 {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-700">
+                {{ session('error') }}
             </div>
         @endif
 
@@ -148,84 +170,110 @@
                         @endphp
 
                         <!-- SATU NOTIFIKASI -->
-                        <form action="{{ route('notifications.read', $notification->id) }}"
-                            method="POST">
+                        <div class="flex items-center justify-between border-b border-slate-100 last:border-b-0 transition-colors
+                            {{ $notification->read_at === null
+                                 ? 'bg-blue-50/70 hover:bg-blue-100/60'
+                                 : 'bg-white hover:bg-slate-50' }}">
 
-                            @csrf
+                            <form action="{{ route('notifications.read', $notification->id) }}"
+                                method="POST"
+                                class="flex-1 min-w-0">
 
-                            <button type="submit"
-                              class="w-full text-left flex items-start gap-3 px-5 py-4 border-b border-slate-100 last:border-b-0 transition-colors
-                              {{ $notification->read_at === null
-                                   ? 'bg-blue-50 hover:bg-blue-100'
-                                   : 'bg-white hover:bg-slate-50' }}">
+                                @csrf
 
-                                <!-- AVATAR PENGIRIM -->
-                                <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
-                                    {{ $initials }}
-                                </div>
+                                <button type="submit"
+                                  class="w-full text-left flex items-start gap-3 px-5 py-4">
 
-                                <!-- ISI NOTIFIKASI -->
-                                <div class="flex-1 min-w-0">
+                                    <!-- AVATAR PENGIRIM -->
+                                    <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                        {{ $initials }}
+                                    </div>
 
-                                    <div class="flex items-center justify-between gap-2 mb-1">
+                                    <!-- ISI NOTIFIKASI -->
+                                    <div class="flex-1 min-w-0">
 
-                                        <span class="text-xs font-bold text-slate-800">
-                                            {{ $actorName }}
-                                        </span>
+                                        <div class="flex items-center justify-between gap-2 mb-1">
 
-                                        <span class="text-[10px] text-slate-400 whitespace-nowrap">
-                                            {{ $notification->created_at->diffForHumans() }}
-                                        </span>
+                                            <span class="text-xs font-bold text-slate-800">
+                                                {{ $actorName }}
+                                            </span>
+
+                                            <span class="text-[10px] text-slate-400 whitespace-nowrap">
+                                                {{ $notification->created_at->diffForHumans() }}
+                                            </span>
+
+                                        </div>
+
+                                        <p class="text-xs text-slate-600 leading-relaxed">
+                                            {{ $message }}
+                                        </p>
+
+                                        @if(!empty($data['post_title']))
+                                            <p class="text-xs font-semibold text-slate-800 mt-1">
+                                                {{ $data['post_title'] }}
+                                            </p>
+                                        @endif
+
+                                        @if($content)
+                                            <p class="text-xs text-slate-500 mt-1 line-clamp-2">
+                                                "{{ $content }}"
+                                            </p>
+                                        @endif
+
+                                        <div class="flex items-center gap-2 mt-2">
+
+                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold
+                                                {{ $categoryColors[$category] ?? 'bg-slate-100 text-slate-500' }}">
+
+                                                {{ $categoryLabels[$category] ?? 'Notifikasi' }}
+
+                                            </span>
+
+                                            @if($notification->read_at === null)
+                                                 <span class="text-[10px] font-bold text-blue-700">
+                                                      Belum dibaca
+                                                 </span>
+                                            @else
+                                                 <span class="text-[10px] font-medium text-slate-500">
+                                                      Sudah dibaca
+                                                 </span>
+                                            @endif
+
+                                        </div>
 
                                     </div>
 
-                                    <p class="text-xs text-slate-600 leading-relaxed">
-                                        {{ $message }}
-                                    </p>
-
-                                    @if(!empty($data['post_title']))
-                                        <p class="text-xs font-semibold text-slate-800 mt-1">
-                                            {{ $data['post_title'] }}
-                                        </p>
+                                    <!-- PENANDA BELUM DIBACA -->
+                                    @if($notification->read_at === null)
+                                        <div class="w-2 h-2 rounded-full bg-blue-600 shrink-0 mt-2"></div>
                                     @endif
 
-                                    @if($content)
-                                        <p class="text-xs text-slate-500 mt-1 line-clamp-2">
-                                            "{{ $content }}"
-                                        </p>
-                                    @endif
+                                </button>
 
-                                    <div class="flex items-center gap-2 mt-2">
+                            </form>
 
-                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold
-                                            {{ $categoryColors[$category] ?? 'bg-slate-100 text-slate-500' }}">
+                            <!-- TOMBOL HAPUS NOTIFIKASI (HANYA UNTUK YANG SUDAH DIBACA) -->
+                            @if($notification->read_at !== null)
+                                <form action="{{ route('notifications.destroy', $notification->id) }}"
+                                    method="POST"
+                                    onsubmit="return confirm('Apakah kamu yakin ingin menghapus notifikasi ini?')"
+                                    class="shrink-0 pr-4">
+                                    @csrf
+                                    @method('DELETE')
 
-                                            {{ $categoryLabels[$category] ?? 'Notifikasi' }}
+                                    <button type="submit"
+                                        title="Hapus notifikasi"
+                                        aria-label="Hapus notifikasi"
+                                        class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            @endif
 
-                                        </span>
-
-                                        @if($notification->read_at === null)
-                                             <span class="text-[10px] font-bold text-blue-700">
-                                                  Belum dibaca
-                                             </span>
-                                             @else
-                                             <span class="text-[10px] font-medium text-slate-500">
-                                                  Sudah dibaca
-                                             </span>
-                                             @endif
-
-                                    </div>
-
-                                </div>
-
-                                <!-- PENANDA BELUM DIBACA -->
-                                @if($notification->read_at === null)
-                                    <div class="w-2 h-2 rounded-full bg-blue-600 shrink-0 mt-2"></div>
-                                @endif
-
-                            </button>
-
-                        </form>
+                        </div>
 
                     @endforeach
 

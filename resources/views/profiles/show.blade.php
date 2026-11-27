@@ -26,7 +26,10 @@
         <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
 
             <!-- Banner -->
-            <div class="h-28 sm:h-32 bg-gradient-to-r from-pink-100 via-rose-100 to-purple-100">
+            <div class="h-32 sm:h-48 bg-gradient-to-r from-pink-100 via-rose-100 to-purple-100 overflow-hidden relative">
+                @if($user->banner_url)
+                    <img src="{{ $user->banner_url }}" alt="Banner {{ $user->name }}" class="w-full h-full object-cover absolute inset-0" onerror="this.style.display='none';">
+                @endif
             </div>
 
             <div class="px-5 pb-5 relative z-10">
@@ -35,8 +38,13 @@
                 <div class="flex items-end justify-between -mt-12 mb-3">
 
                     <div
-                        class="relative z-10 w-24 h-24 rounded-full bg-pink-100 border-4 border-white flex items-center justify-center text-pink-700 text-3xl font-extrabold shadow-sm">
-                        {{ $initials }}
+                        class="relative z-10 w-24 h-24 rounded-full bg-pink-100 border-4 border-white flex items-center justify-center text-pink-700 text-3xl font-extrabold shadow-sm overflow-hidden">
+                        @if($user->avatar_url)
+                            <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                            <span style="display: none;">{{ $initials }}</span>
+                        @else
+                            <span>{{ $initials }}</span>
+                        @endif
                     </div>
 
                     @if($isOwnProfile)

@@ -34,6 +34,20 @@ class ProfileUpdateRequest extends FormRequest
                 'max:500',
             ],
 
+            'avatar' => [
+                'nullable',
+                'image',
+                'mimes:jpeg,png,jpg,webp',
+                'max:2048',
+            ],
+
+            'banner' => [
+                'nullable',
+                'image',
+                'mimes:jpeg,png,jpg,webp',
+                'max:3072',
+            ],
+
             'email' => [
                 'required',
                 'string',
