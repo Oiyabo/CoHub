@@ -44,6 +44,12 @@
                             class="mb-1 px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">
                             Edit profil
                         </a>
+                    @elseif(auth()->check())
+                        <button type="button"
+                            @click="$dispatch('open-report', { type: 'user', id: {{ $user->id }}, label: @js('@' . ($user->username ?? $user->name)) })"
+                            class="mb-1 px-3.5 py-2 border border-rose-200 bg-rose-50/70 hover:bg-rose-100 rounded-xl text-xs font-bold text-rose-700 transition-colors cursor-pointer">
+                            Laporkan pengguna
+                        </button>
                     @endif
 
                 </div>

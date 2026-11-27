@@ -608,6 +608,10 @@
     }
 </script>
 
+@auth
+    <x-report-modal />
+@endauth
+
 @guest
     @include('auth.modals')
 @endguest

@@ -98,6 +98,15 @@
                                         class="w-full text-left px-3.5 py-2 text-slate-700 hover:bg-slate-50 cursor-pointer">
                                     Salin tautan
                                 </button>
+                                @auth
+                                    @if(auth()->id() !== $post->user_id)
+                                        <button type="button"
+                                                @click="$dispatch('open-report', { type: 'post', id: {{ $post->id }}, label: @js(\Illuminate\Support\Str::limit($post->title, 50)) }); open = false"
+                                                class="w-full text-left px-3.5 py-2 text-rose-600 hover:bg-rose-50 cursor-pointer">
+                                            Laporkan postingan
+                                        </button>
+                                    @endif
+                                @endauth
                             </div>
                         </div>
                     </div>

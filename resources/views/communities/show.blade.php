@@ -224,6 +224,16 @@
                         </button>
 
                         @auth
+                            @if(Auth::id() !== $community->created_by)
+                                <button type="button"
+                                    @click="$dispatch('open-report', { type: 'community', id: {{ $community->id }}, label: @js('c/' . $community->name) })"
+                                    class="px-3.5 py-2 rounded-full border border-slate-200 text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 font-semibold text-xs transition cursor-pointer">
+                                    Laporkan
+                                </button>
+                            @endif
+                        @endauth
+
+                        @auth
                             @php
                                 $isMod = $community->isModerator(Auth::user());
                                 $isOwnerOrAdmin = Auth::user()->isAdmin() || Auth::user()->id === $community->created_by;
@@ -381,6 +391,15 @@
                                 <span>💬</span>
                                 <span>{{ $post->comments->count() }} Balasan</span>
                             </a>
+                            @auth
+                                @if(auth()->id() !== $post->user_id)
+                                    <button type="button"
+                                        @click="$dispatch('open-report', { type: 'post', id: {{ $post->id }}, label: @js(\Illuminate\Support\Str::limit($post->title, 50)) })"
+                                        class="ml-auto text-slate-400 hover:text-rose-600 transition-colors cursor-pointer">
+                                        Laporkan
+                                    </button>
+                                @endif
+                            @endauth
                         </div>
                     </article>
                 @empty

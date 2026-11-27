@@ -102,6 +102,14 @@
                             </button>
                         </form>
                     @endcan
+
+                    @if(auth()->id() !== $comment->user_id)
+                        <button type="button"
+                                @click="$dispatch('open-report', { type: 'comment', id: {{ $comment->id }}, label: @js('Komentar oleh ' . ($comment->user?->name ?? 'Pengguna')) })"
+                                class="text-[11px] text-slate-400 hover:text-rose-600 font-semibold cursor-pointer">
+                            Laporkan
+                        </button>
+                    @endif
                 @endauth
             </div>
 
